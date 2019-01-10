@@ -5,7 +5,9 @@ import java.util.NoSuchElementException;
 import java.util.StringTokenizer;
 
 public class DataRecord implements Comparable<DataRecord> {
-
+	public static final int ERROR_VALUE = 999999999; 
+	public static final double NO_POSITION_DATA = -999;
+	
 	public ByteArrayLayout layout;
 	public int[] fieldValue = null;
 	
@@ -47,7 +49,11 @@ public class DataRecord implements Comparable<DataRecord> {
 		}
 	}
 	
-	public double getRawValue(String name) {
+	public boolean hasFieldName(String name) {
+		return layout.hasFieldName(name);
+	}
+	
+	public int getRawValue(String name) {
 		for (int i =0; i < layout.fieldName.length; i++)
 			if (layout.fieldName[i].equalsIgnoreCase(name))
 				return fieldValue[i];
@@ -61,14 +67,16 @@ public class DataRecord implements Comparable<DataRecord> {
 		return 0;
 	}
 
-	public String toString() {
-		String s = new String();
-		for (int i=0; i < layout.fieldName.length; i++) {
-			s = s + layout.fieldName[i] + ": " + fieldValue[i] + ",   ";
-			if ((i+1)%6 == 0) s = s + "\n";
-		}
-		return s;
+	public String getStringValue(String name) {
+		for (int i =0; i < layout.fieldName.length; i++)
+			if (layout.fieldName[i].equalsIgnoreCase(name)) {
+				ConversionTable ct = layout.getConversionTable(); 
+				return ct.getStringValue(layout.conversion[i], fieldValue[i]);
+			}
+		return null;
 	}
+
+	
 	public static long getLongValue(int offset, int[] data) {
 		int[] by2 = {data[offset],data[offset+1],data[offset+2],data[offset+3]};
 		long value = Tools.getLongFromBytes(by2);
@@ -165,6 +173,38 @@ public class DataRecord implements Comparable<DataRecord> {
 			s = s + fieldValue[i] + ",\n";
 		}
 		s = s + fieldValue[fieldValue.length-1] + ")\n";
+		return s;
+	}
+//	public String toString() {
+//		String s = new String();
+//		for (int i=0; i < layout.fieldName.length; i++) {
+//			s = s + layout.fieldName[i] + ": " + fieldValue[i] + ",   ";
+//			if ((i+1)%6 == 0) s = s + "\n";
+//		}
+//		return s;
+//	}
+	public String toHeaderString() {
+		String s = new String();
+		for (int i=0; i < layout.fieldName.length-1; i++) {
+				s = s + layout.shortName[i] + ", ";
+		}
+		s = s + layout.shortName[layout.fieldName.length-1];
+
+		return s;
+	}
+		
+	public String toString() {
+		String s = new String();
+		ConversionTable ct = layout.getConversionTable(); 
+		for (int i=0; i < layout.fieldName.length-1; i++) {
+			if (ct != null)
+				s = s + ct.getStringValue(layout.conversion[i], fieldValue[i]) + ", ";
+			else
+				s = s + fieldValue[i] + ", ";
+		}if (ct != null)
+			s = s + ct.getStringValue(layout.conversion[layout.fieldName.length-1], fieldValue[layout.fieldName.length-1]);
+		else
+			s = s + fieldValue[layout.fieldName.length-1];
 		return s;
 	}
 }
