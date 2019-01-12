@@ -20,6 +20,7 @@ public class DataRecord implements Comparable<DataRecord> {
 	public double satLongitude;
 
 	public DataRecord(ByteArrayLayout layout, String line) throws IOException, DataLoadException {
+		if (layout == null) throw new DataLoadException("Missing layout");
 		this.layout = layout;
 		fieldValue = new int[layout.fieldName.length];
 		load(line);

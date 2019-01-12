@@ -58,6 +58,14 @@ public class SatTelemStore {
 				return i;
 		return ERROR_IDX;
 	}
+
+	public ByteArrayLayout getLayoutByName(String name) {
+		for (int i=0; i<layouts.length; i++)
+			if (layouts[i].name.equalsIgnoreCase(name))
+				return layouts[i];
+		return null;
+	}
+
 	
 	/**
 	 * Add the frame to the correct array and file

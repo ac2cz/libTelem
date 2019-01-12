@@ -271,7 +271,7 @@ public class DisplayModule extends JPanel implements ActionListener, MouseListen
 	}
 
 
-	public void updateRtValues(DataRecord rt) {
+	public void updateValues(DataRecord rt) {
 		rtPayload = rt;
 		for (int i=0; i < size; i++) {
 			if(fieldName[i] != null) {
