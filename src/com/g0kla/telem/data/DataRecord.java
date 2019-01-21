@@ -7,6 +7,7 @@ import java.util.StringTokenizer;
 public class DataRecord implements Comparable<DataRecord> {
 	public static final int ERROR_VALUE = 999999999; 
 	public static final double NO_POSITION_DATA = -999;
+	public static final double NO_TLE = -998;
 	
 	public ByteArrayLayout layout;
 	public int[] fieldValue = null;
@@ -63,8 +64,10 @@ public class DataRecord implements Comparable<DataRecord> {
 
 	public double getDoubleValue(String name) {
 		for (int i =0; i < layout.fieldName.length; i++)
-			if (layout.fieldName[i].equalsIgnoreCase(name))
-				return fieldValue[i];
+			if (layout.fieldName[i].equalsIgnoreCase(name)) {
+				ConversionTable ct = layout.getConversionTable(); 
+				return ct.convertRawValue(layout.conversion[i], fieldValue[i]);
+			}
 		return 0;
 	}
 

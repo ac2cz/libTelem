@@ -5,19 +5,31 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Properties;
+import java.util.TimeZone;
+
+import org.joda.time.DateTime;
 
 import com.g0kla.telem.data.ByteArrayLayout;
+import com.g0kla.telem.data.EpochTime;
 import com.g0kla.telem.data.LayoutLoadException;
+import com.g0kla.telem.predict.PositionCalcException;
 import com.g0kla.telem.predict.SortedTleList;
 
 import uk.me.g4dpz.satellite.SatPos;
+import uk.me.g4dpz.satellite.Satellite;
+import uk.me.g4dpz.satellite.SatelliteFactory;
+import uk.me.g4dpz.satellite.TLE;
 
-public abstract class Spacecraft implements Comparable<Spacecraft> {
+public class Spacecraft implements Comparable<Spacecraft> {
 	public Properties properties; // Java properties file for user defined values
 	public File propertiesFile;
 	public String dirName;
+	SpacecraftPositionCache positionCache;
+
 
 	boolean epochUsesT0 = false; // if false uptime is seconds since Unix epoch
 	
@@ -87,11 +99,13 @@ public abstract class Spacecraft implements Comparable<Spacecraft> {
             "2 40967 064.7791 061.1881 0209866 223.3946 135.0462 14.74939952014747"};
 	*/
 	
-	public Spacecraft(String dir, File fileName ) throws LayoutLoadException, IOException {
+	public Spacecraft(String dir, File fileName) throws LayoutLoadException, IOException {
 		dirName = dir;
 		properties = new Properties();
 		propertiesFile = fileName;	
 		tleList = new SortedTleList(10);
+		positionCache = new SpacecraftPositionCache(satId);
+
 	}
 		
 	public int getLayoutIdxByName(String name) {
@@ -135,6 +149,7 @@ public abstract class Spacecraft implements Comparable<Spacecraft> {
 		return null;
 	}
 
+	
 	/**
 	 * TLEs are stored in the spacecraft directory in the logFileDirectory.
 	 * @throws IOException 
@@ -382,8 +397,66 @@ public abstract class Spacecraft implements Comparable<Spacecraft> {
 		return name.compareToIgnoreCase(s2.name);
 	}
 	
+	public static final DateFormat timeDateFormat = new SimpleDateFormat("HH:mm:ss");
+	public static final DateFormat dateDateFormat = new SimpleDateFormat("dd MMM yy");
+	
+	public boolean hasTimeZero() { 
+//		if (timeZero == null) return false;
+//		if (timeZero.size() == 0) return false;
+//		return true;
+		return false;
+	}
+	
+	public boolean hasTimeZero(int reset) { 
+//		if (timeZero == null) return false;
+//		if (reset >= timeZero.size()) return false;
+//		return true;
+		return false;
+	}
+	
+	public String[][] getT0TableData() {
+//		if (timeZero == null) return null;
+//		if (timeZero.size() == 0) return null;
+//		String[][] data = new String[timeZero.size()][];
+//		for (int i=0; i< timeZero.size(); i++) {
+//			data[i] = new String[2];
+//			data[i][0] = ""+i;
+//			data[i][1] = getUtcDateForReset(i,0) + " " + getUtcTimeForReset(i,0);
+//		}
+//		return data;
+		return null;
+	}
+	
+	public String getUtcTimeForReset(int reset, long uptime) {
+		Date dt = null;
+		if (!epochUsesT0) {
+			dt = new Date(uptime *1000);
+		} else {
+//			if (timeZero == null) return null;
+//			if (reset >= timeZero.size()) return null;
+//			dt = new Date(timeZero.get(reset) + uptime*1000);
+		}
+		timeDateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+		String time = timeDateFormat.format(dt); 
+		return time;
+	}
+
+	public String getUtcDateForReset(int reset, long uptime) {
+		Date dt = null;
+		if (!epochUsesT0) {
+			dt = new Date(uptime *1000);
+		} else {
+//		if (timeZero == null) return null;
+//		if (reset >= timeZero.size()) return null;
+//		 dt = new Date(timeZero.get(reset) + uptime *1000);
+		}
+		dateDateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+		String time = dateDateFormat.format(dt);
+		return time;
+	}
+
 	public Date getUtcForReset(int reset, long uptime) {
-		if (epochUsesT0) {
+		if (!epochUsesT0) { // then we just have unit time in seconds
 			Date dt = new Date(uptime*1000);
 			return dt;
 		} else {
@@ -394,6 +467,93 @@ public abstract class Spacecraft implements Comparable<Spacecraft> {
 			return null;
 		}
 	}
+
+//	public Date getUtcForReset(int reset, long uptime) {
+//		if (timeZero == null) return null;
+//		if (reset >= timeZero.size()) return null;
+//		Date dt = new Date(timeZero.get(reset) + uptime*1000);
+//		return dt;
+//	}
+	
+	public DateTime getUtcDateTimeForReset(int reset, long uptime) {
+		if (!epochUsesT0) { // then we just have unit time in seconds
+			Date dt = new Date(uptime*1000);
+			DateTime dateTime = new DateTime(dt);
+			return dateTime;
+		} else {
+//		if (timeZero == null) return null;
+//		if (reset >= timeZero.size()) return null;
+//		Date dt = new Date(timeZero.get(reset) + uptime*1000);
+//		DateTime dateTime = new DateTime(dt); // FIXME - this date conversion is not working.  Need to understand how it works.		
+//		return dateTime;
+		}
+		return null;
+	}
+
+	/**
+	 * Given a date, what is the reset and uptime
+	 * @param fromDate
+	 * @return a FoxTime object with the reset and uptime
+	 */
+	public EpochTime getUptimeForUtcDate(Date fromDate) {
+		if (!epochUsesT0) { // then we just have unit time in seconds
+			int reset = 0;
+			long uptime = fromDate.getTime()/1000;
+			EpochTime ft = new EpochTime(reset, uptime);	
+			return ft;
+		} else {
+//		if (timeZero == null) return null;
+//		if (fromDate == null) return null;
+//		if (timeZero.size() == 0) return null;
+//		long dateTime = fromDate.getTime();
+//		long T0 = -1;
+//		int reset = 0;
+//		long uptime = 0;
+//		// Search T0.  It's short so we can scan the whole list
+//		for (int i=0; i<timeZero.size(); i++) {
+//			if (timeZero.get(i) > dateTime) {
+//				// then we want the previous value
+//				if (i==0) break; 
+//				reset = i-1;
+//				T0 = timeZero.get(reset);
+//				break;
+//			}
+//			
+//		}
+//		if (T0 == -1) {
+//			// return the last reset, we scanned the whole list
+//			reset = timeZero.size()-1;
+//			T0 = timeZero.get(reset);
+//		}
+//		
+//		// Otherwise we have a valid reset, so calc the uptime, which is seconds from the T0 to the passed dateTime
+//		uptime = dateTime - T0; // milliseconds
+//		uptime = uptime / 1000; // seconds;
+//		
+//		EpochTime ft = new EpochTime(reset, uptime);
+//		return ft;
+		}
+		return null;
+	}
+
+	
+//	public SatPos getSatellitePosition(int reset, long uptime) throws PositionCalcException {
+//		// We need to construct a date for the historical time of this WOD record
+//		DateTime timeNow = getUtcDateTimeForReset(reset, uptime);
+//		if (timeNow == null) return null;
+//		SatPos satellitePosition = positionCache.getPosition(timeNow.getMillis());
+//		if (satellitePosition != null) {
+//			return satellitePosition;
+//		}
+//		final TLE tle = getTLEbyDate(timeNow);
+////		if (Config.debugFrames) Log.println("TLE Selected fOR date: " + timeNow + " used TLE epoch " + tle.getEpoch());
+//		if (tle == null) throw new PositionCalcException(FramePart.NO_TLE); // We have no keps
+//		final Satellite satellite = SatelliteFactory.createSatellite(tle);
+//        satellitePosition = satellite.getPosition(Config.GROUND_STATION, timeNow.toDate());
+////        Log.println("Cache value");
+//        positionCache.storePosition(timeNow.getMillis(), satellitePosition);
+//		return satellitePosition;
+//	}
 
 	
 }

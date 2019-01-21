@@ -32,7 +32,12 @@ public class ConversionTable {
 		this.fileName = fileName;
 		load(fileName);
 	}
-	
+
+	public String getUnits(int conversion) {
+		String s = units[conversion];
+		return s;
+	}
+
 	public String getStringValue(int conversion, long rawValue) {
 		double val = convertRawValue(conversion, rawValue);
 		String s = "";
@@ -40,7 +45,6 @@ public class ConversionTable {
 			s = Integer.toString((int) val);
 		} else {
 			s = String.format("%1.2f", val);
-			s = s + " " + units[conversion];
 		}
 		return s;
 	}

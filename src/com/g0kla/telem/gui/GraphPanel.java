@@ -4,9 +4,16 @@ import java.awt.Color;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.geom.Ellipse2D;
+import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
+
+import com.g0kla.telem.data.ByteArrayLayout;
+import com.g0kla.telem.data.DataLoadException;
+import com.g0kla.telem.segDb.DataTable;
+import com.g0kla.telem.segDb.SatTelemStore;
+import com.g0kla.telem.segDb.Spacecraft;
 
 import uk.me.g4dpz.satellite.SatPos;
 
@@ -44,9 +51,10 @@ public class GraphPanel extends GraphCanvas {
 	int[] plottedXreset;
 	long[] plottedXuptime;
 	int zeroPoint;
+	Spacecraft sat;
 	
 	public static final int MAX_VARIABLES = 13;
-	Color[] graphColor = {Tools.BLUE, Tools.GRAPH1, Tools.GRAPH2, Tools.GRAPH3, Tools.GRAPH4, Tools.GRAPH5, Tools.GRAPH6, 
+	Color[] graphColor = {Tools.AMSAT_BLUE, Tools.GRAPH1, Tools.GRAPH2, Tools.GRAPH3, Tools.GRAPH4, Tools.GRAPH5, Tools.GRAPH6, 
 			Tools.GRAPH7, Tools.GRAPH8, Tools.GRAPH9, Tools.GRAPH10 , Tools.GRAPH11 , Tools.GRAPH12};
 	
 	//String[] fieldName = null;
@@ -56,9 +64,10 @@ public class GraphPanel extends GraphCanvas {
 	int sideLabel = 0;
 	int bottomLabelOffset = 5;
 	
-	GraphPanel(String t, int conversionType, int plType, GraphFrame gf) {
-		super(t, conversionType, plType, gf, fox2);
-		freqOffset = fox2.telemetryDownlinkFreqkHz * 1000;
+	GraphPanel(String title, int satId, ByteArrayLayout layout, GraphFrame gf, Spacecraft sat, SatTelemStore db) throws NumberFormatException, IOException, DataLoadException {
+		super(title, satId, layout, gf, db);
+		this.sat = sat;
+//		freqOffset = fox2.telemetryDownlinkFreqkHz * 1000;
 		updateGraphData("GrapPanel.new");
 	}
 
@@ -68,7 +77,7 @@ public class GraphPanel extends GraphCanvas {
 		
 		int titleHeight = topBorder;
 		int verticalOffset = 15;
-		if (zeroPoint < Config.graphAxisFontSize*3) {
+		if (zeroPoint < graphAxisFontSize*3) {
 			// we need the title at bottom of graph, not top
 			titleHeight = graphHeight - 15;	
 		}
@@ -77,7 +86,7 @@ public class GraphPanel extends GraphCanvas {
 		int lineLength = 15;
 		
 		int rows = graphFrame.fieldName.length;
-		int font = (int)(Config.graphAxisFontSize );
+		int font = (int)(graphAxisFontSize );
 		
 		int leftLineOffset = 50;
 		int fonth = (int)(12*font/9);
@@ -133,14 +142,14 @@ public class GraphPanel extends GraphCanvas {
 		if (graphFrame.plotDerivative) {
 			g2.setColor(Color.BLACK);
 			g2.drawString("Der:" + graphFrame.fieldName[0]+" ("+graphFrame.fieldUnits+")", sideBorder+ graphWidth - leftOffset + 2, titleHeight + verticalOffset +5  );
-			g2.setColor(Config.AMSAT_RED);
+			g2.setColor(Tools.AMSAT_RED);
 			g2.fillRect(sideBorder + graphWidth - leftLineOffset, titleHeight + verticalOffset, lineLength + 5,2);
 			x = 1;
 		}
 		if (graphFrame.dspAvg) {
 			g2.setColor(Color.BLACK);
 			g2.drawString("Avg:" + graphFrame.fieldName[0]+" ("+graphFrame.fieldUnits+")", sideBorder+ graphWidth - leftOffset + 2, titleHeight + verticalOffset +5 + x * fonth );
-			g2.setColor(Config.AMSAT_GREEN);
+			g2.setColor(Tools.AMSAT_GREEN);
 			g2.fillRect(sideBorder + graphWidth - leftLineOffset, titleHeight + verticalOffset + x * fonth, lineLength + 5,2);
 		}
 	}
@@ -173,7 +182,7 @@ public class GraphPanel extends GraphCanvas {
 			plottedXuptime[j] = NO_TIME_VALUE; 
 		}
 		
-		g.setFont(new Font("SansSerif", Font.PLAIN, Config.graphAxisFontSize));
+		g.setFont(new Font("SansSerif", Font.PLAIN, graphAxisFontSize));
 		
 		if (graphFrame.plotDerivative) {
 			firstDifference = new double[graphData[0][0].length];	
@@ -181,14 +190,14 @@ public class GraphPanel extends GraphCanvas {
 
 		double[] axisPoints2 = {0d, 0d, 0d};
 		if (drawGraph2) {
-			axisPoints2 = plotVerticalAxis(graphWidth, graphHeight, graphWidth, graphData2, false, graphFrame.fieldUnits2, graphFrame.conversionType2); // default graph type to 0 for now
+			axisPoints2 = plotVerticalAxis(graphWidth, graphHeight, graphWidth, graphData2, false, graphFrame.fieldUnits2); // default graph type to 0 for now
 		}
 		
-		double[] axisPoints = plotVerticalAxis(0, graphHeight, graphWidth, graphData, graphFrame.showHorizontalLines,graphFrame.fieldUnits, conversionType);
+		double[] axisPoints = plotVerticalAxis(0, graphHeight, graphWidth, graphData, graphFrame.showHorizontalLines,graphFrame.fieldUnits);
 		
 		
 		zeroPoint = (int) axisPoints[0];
-		g.setFont(new Font("SansSerif", Font.PLAIN, Config.graphAxisFontSize));
+		g.setFont(new Font("SansSerif", Font.PLAIN, graphAxisFontSize));
 		
 		// Analyze the data for the horizontal axis next
 		// We only need to do this for the first data set (if there are multiple)
@@ -199,41 +208,41 @@ public class GraphPanel extends GraphCanvas {
 		ArrayList<Integer> resetPosition = new ArrayList<Integer>();
 		resetPosition.add(0); // We have a reset at position 0 of course
 		
-		double currentReset = graphData[0][PayloadStore.RESETS_COL][0];
-		double lastUptime = graphData[0][PayloadStore.UPTIME_COL][0];
+		double currentReset = graphData[0][DataTable.RESETS_COL][0];
+		double lastUptime = graphData[0][DataTable.UPTIME_COL][0];
 		
-		for (int i=1; i < graphData[0][PayloadStore.RESETS_COL].length; i++) {
-			if (graphData[0][PayloadStore.RESETS_COL][i] != currentReset) {
+		for (int i=1; i < graphData[0][DataTable.RESETS_COL].length; i++) {
+			if (graphData[0][DataTable.RESETS_COL][i] != currentReset) {
 				// We have another reset in this data
 				// Add this position to the array.  It is the FIRST piece of data that has this reset
 				resetPosition.add(i);
-				currentReset = graphData[0][PayloadStore.RESETS_COL][i];
+				currentReset = graphData[0][DataTable.RESETS_COL][i];
 			} else {
 				if (graphFrame.UPTIME_THRESHOLD != GraphFrame.CONTINUOUS_UPTIME_THRESHOLD)
 					// We dont have a reset, but maybe a big gap in the data
-					if ((graphData[0][PayloadStore.UPTIME_COL][i] - lastUptime) > graphFrame.UPTIME_THRESHOLD) {
+					if ((graphData[0][DataTable.UPTIME_COL][i] - lastUptime) > graphFrame.UPTIME_THRESHOLD) {
 						resetPosition.add(i);
-						currentReset = graphData[0][PayloadStore.RESETS_COL][i];
+						currentReset = graphData[0][DataTable.RESETS_COL][i];
 					}
 			}
-			lastUptime = graphData[0][PayloadStore.UPTIME_COL][i];
+			lastUptime = graphData[0][DataTable.UPTIME_COL][i];
 		}
 
-		int titleHeight = Config.graphAxisFontSize+10;
-		if (zeroPoint < Config.graphAxisFontSize*3) {
+		int titleHeight = graphAxisFontSize+10;
+		if (zeroPoint < graphAxisFontSize*3) {
 			// we need the title at bottom of graph, not top
 			titleHeight = graphHeight + topBorder;
 		}
 
 		// Draw the title
 		g2.setColor(Color.BLACK);
-		g.setFont(new Font("SansSerif", Font.BOLD, Config.graphAxisFontSize+3));
-		g2.drawString(graphFrame.displayTitle, sideBorder/2 + graphWidth/2 - graphFrame.displayTitle.length()/2 * Config.graphAxisFontSize/2, titleHeight);
+		g.setFont(new Font("SansSerif", Font.BOLD, graphAxisFontSize+3));
+		g2.drawString(graphFrame.displayTitle, sideBorder/2 + graphWidth/2 - graphFrame.displayTitle.length()/2 * graphAxisFontSize/2, titleHeight);
 
 		// draw the key
 		drawLegend(graphHeight, graphWidth); // FIXME - need to work out where to plot the key when the axis is on top
 		
-		g.setFont(new Font("SansSerif", Font.PLAIN, Config.graphAxisFontSize));
+		g.setFont(new Font("SansSerif", Font.PLAIN, graphAxisFontSize));
 		
 		// Draw baseline at the zero point, but not the labels, which are drawn for each reset
 		g2.setColor(graphAxisColor);
@@ -241,17 +250,17 @@ public class GraphPanel extends GraphCanvas {
 		g2.setColor(graphTextColor);
 		int offset = 0;
 		if (!graphFrame.hideUptime) {
-			g2.drawString("Uptime", sideLabelOffset, zeroPoint+Config.graphAxisFontSize );
-			offset = Config.graphAxisFontSize;
+			g2.drawString("Uptime", sideLabelOffset, zeroPoint+graphAxisFontSize );
+			offset = graphAxisFontSize;
 		}
 		//g2.setColor(graphColor);
 		if (!graphFrame.showUTCtime)
-			g2.drawString("Resets", sideLabelOffset, zeroPoint+1*Config.graphAxisFontSize + offset );
+			g2.drawString("Resets", sideLabelOffset, zeroPoint+1*graphAxisFontSize + offset );
 		else {
-			g2.drawString("UTC", sideLabelOffset, zeroPoint+(int)(1.5*Config.graphAxisFontSize)+offset );
-			g.setFont(new Font("SansSerif", Font.PLAIN, (int)(Config.graphAxisFontSize*0.9)));
-			g2.drawString("(Spacecraft UTC is approximate)", graphWidth-Config.graphAxisFontSize*10, titleHeight );
-			g.setFont(new Font("SansSerif", Font.PLAIN, Config.graphAxisFontSize));
+			g2.drawString("UTC", sideLabelOffset, zeroPoint+(int)(1.5*graphAxisFontSize)+offset );
+			g.setFont(new Font("SansSerif", Font.PLAIN, (int)(graphAxisFontSize*0.9)));
+			g2.drawString("(Spacecraft UTC is approximate)", graphWidth-graphAxisFontSize*10, titleHeight );
+			g.setFont(new Font("SansSerif", Font.PLAIN, graphAxisFontSize));
 		
 		}
 
@@ -281,7 +290,7 @@ public class GraphPanel extends GraphCanvas {
 			int width = 0;
 			int start = resetPosition.get(r); // The position in the data array that this reset starts
 			int end = 0; // The position in the data array that this reset starts. It is one before the next reset or the end of the data
-			int len = graphData[0][PayloadStore.DATA_COL].length;
+			int len = graphData[0][DataTable.DATA_COL].length;
 			startScreenPos = sideBorder + (graphWidth * start)/len;
 			if (r == resetPosition.size()-1) // then we are at the last reset
 				end = len; // this reset runs to the end of the data
@@ -328,31 +337,31 @@ public class GraphPanel extends GraphCanvas {
 				String s = d.format(uptime);
 				int offset = 0;
 				if (!graphFrame.hideUptime) {
-					offset = Config.graphAxisFontSize;	
+					offset = graphAxisFontSize;	
 				}
 				if (resets != prevReset)
 				{
 					g2.setColor(graphTextColor);
 					if (!graphFrame.showUTCtime)
 						if (resets != NO_TIME_VALUE)
-							g2.drawString(""+resets, timepos+sideBorder+2, zeroPoint+1*Config.graphAxisFontSize + offset );
+							g2.drawString(""+resets, timepos+sideBorder+2, zeroPoint+1*graphAxisFontSize + offset );
 				}
 
 				g2.setColor(graphTextColor);
 
 				if (!graphFrame.hideUptime) {
 					if (uptime != NO_TIME_VALUE)
-						g2.drawString(s, timepos+sideBorder+2, zeroPoint+Config.graphAxisFontSize );
+						g2.drawString(s, timepos+sideBorder+2, zeroPoint+graphAxisFontSize );
 
 				}
 				if (graphFrame.showUTCtime) {
-					if (fox.isFox1()) {
-						FoxSpacecraft fox2 = (FoxSpacecraft)fox;
-						if (fox2.hasTimeZero(resets) && resets != NO_TIME_VALUE) {
-							g2.drawString(fox2.getUtcTimeForReset(resets, uptime), timepos+sideBorder+2, zeroPoint+1*Config.graphAxisFontSize + offset);
-							g2.drawString(""+fox2.getUtcDateForReset(resets, uptime), timepos+sideBorder+2, zeroPoint+2 * Config.graphAxisFontSize +offset);
-						}
-					}
+//					if (fox.isFox1()) {
+//						FoxSpacecraft fox2 = (FoxSpacecraft)fox;
+//						if (fox2.hasTimeZero(resets) && resets != NO_TIME_VALUE) {
+							g2.drawString(sat.getUtcTimeForReset(resets, uptime), timepos+sideBorder+2, zeroPoint+1*graphAxisFontSize + offset);
+							g2.drawString(""+sat.getUtcDateForReset(resets, uptime), timepos+sideBorder+2, zeroPoint+2 * graphAxisFontSize +offset);
+//						}
+//					}
 				}
 				g2.setColor(graphAxisColor);
 				if (graphFrame.showVerticalLines) {
@@ -402,7 +411,7 @@ public class GraphPanel extends GraphCanvas {
 			for (int i=graphFrame.AVG_PERIOD/2; i < graphData[0][0].length-graphFrame.AVG_PERIOD/2; i++) {
 				sum = 0;
 				for (int j=0; j< graphFrame.AVG_PERIOD; j++)
-					sum += graphData[0][PayloadStore.DATA_COL][i+j-graphFrame.AVG_PERIOD/2];
+					sum += graphData[0][DataTable.DATA_COL][i+j-graphFrame.AVG_PERIOD/2];
 				sum = sum / (double)(graphFrame.AVG_PERIOD);
 				dspData[i] = sum;
 				if (first) {
@@ -416,18 +425,18 @@ public class GraphPanel extends GraphCanvas {
 		}
 
 		double maxTimeValue = 0;
-		double minTimeValue = 99999999;
+		double minTimeValue = 99E99;
 		for (int i=start; i < end; i++) {
-			if (graphData[0][PayloadStore.UPTIME_COL][i] >= maxTimeValue) maxTimeValue = graphData[0][PayloadStore.UPTIME_COL][i];
-			if (graphData[0][PayloadStore.UPTIME_COL][i] <= minTimeValue) minTimeValue = graphData[0][PayloadStore.UPTIME_COL][i];
+			if (graphData[0][DataTable.UPTIME_COL][i] >= maxTimeValue) maxTimeValue = graphData[0][DataTable.UPTIME_COL][i];
+			if (graphData[0][DataTable.UPTIME_COL][i] <= minTimeValue) minTimeValue = graphData[0][DataTable.UPTIME_COL][i];
 			if (graphFrame.plotDerivative && i > 0) {
-				double value = graphData[0][PayloadStore.DATA_COL][i];
-				double value2 = graphData[0][PayloadStore.DATA_COL][i-1];
-				if (conversionType == BitArrayLayout.CONVERT_FREQ) {
-					value = value - freqOffset;
-					value2 = value2 - freqOffset;
-				}
-				firstDifference[i] = 5 * ((value - value2) / (graphData[0][PayloadStore.UPTIME_COL][i]-graphData[0][PayloadStore.UPTIME_COL][i-1]));
+				double value = graphData[0][DataTable.DATA_COL][i];
+				double value2 = graphData[0][DataTable.DATA_COL][i-1];
+//				if (conversionType == BitArrayLayout.CONVERT_FREQ) {
+//					value = value - freqOffset;
+//					value2 = value2 - freqOffset;
+//				}
+				firstDifference[i] = 5 * ((value - value2) / (graphData[0][DataTable.UPTIME_COL][i]-graphData[0][DataTable.UPTIME_COL][i-1]));
 			//	if (firstDifference[i] < minValue) minValue = firstDifference[i];
 				//	if (firstDifference[i] > maxValue) maxValue = firstDifference[i];
 			}
@@ -445,11 +454,11 @@ public class GraphPanel extends GraphCanvas {
 		// For non continuous graphs the calling function makes sure there is room, so we will always draw one,
 		// except if this is the last reset, because we don't want to draw a label off the right end of the graph
 		if (drawLabels && (numberOfTimeLabels > 0 || !graphFrame.showContinuous) 
-				&& (numberOfTimeLabels > 0 || start < graphData[0][PayloadStore.RESETS_COL].length-1)) {  
+				&& (numberOfTimeLabels > 0 || start < graphData[0][DataTable.RESETS_COL].length-1)) {  
 			// calculate the label step size
 			double[] timelabels = calcAxisInterval(minTimeValue, maxTimeValue, numberOfTimeLabels, true);
 			numberOfTimeLabels = timelabels.length;
-			int resets = (int) graphData[0][PayloadStore.RESETS_COL][start];
+			int resets = (int) graphData[0][DataTable.RESETS_COL][start];
 
 			boolean firstLabel = true;
 			DecimalFormat d = new DecimalFormat("0");
@@ -471,12 +480,12 @@ public class GraphPanel extends GraphCanvas {
 
 						int offset = 0;
 						if (!graphFrame.hideUptime) {
-							offset = Config.graphAxisFontSize;	
+							offset = graphAxisFontSize;	
 						}
 						if ( firstLabel) {
 							g2.setColor(graphTextColor);
 							if (!graphFrame.showUTCtime)
-								g2.drawString(""+resets, timepos+sideBorder+2, zeroPoint+1*Config.graphAxisFontSize + offset );
+								g2.drawString(""+resets, timepos+sideBorder+2, zeroPoint+1*graphAxisFontSize + offset );
 							//else
 							//	g2.drawString(""+fox.getUtcDateforReset(resets, timepos), timepos+sideBorder+2, zeroPoint+2 * Config.graphAxisFontSize );	
 
@@ -485,14 +494,14 @@ public class GraphPanel extends GraphCanvas {
 						g2.setColor(graphTextColor);
 
 						if (!graphFrame.hideUptime) {
-							g2.drawString(s, timepos+sideBorder+2, zeroPoint+Config.graphAxisFontSize );
+							g2.drawString(s, timepos+sideBorder+2, zeroPoint+graphAxisFontSize );
 
 						}
 						if (graphFrame.showUTCtime) {
-							if (fox.hasTimeZero(resets)) {
-								g2.drawString(fox.getUtcTimeForReset(resets, (long)timelabels[v]), timepos+sideBorder+2, zeroPoint+1*Config.graphAxisFontSize + offset);
-								g2.drawString(""+fox.getUtcDateForReset(resets, (long)timelabels[v]), timepos+sideBorder+2, zeroPoint+2 * Config.graphAxisFontSize +offset);
-							}
+//							if (fox.hasTimeZero(resets)) {
+								g2.drawString(sat.getUtcTimeForReset(resets, (long)timelabels[v]), timepos+sideBorder+2, zeroPoint+1*graphAxisFontSize + offset);
+								g2.drawString(""+sat.getUtcDateForReset(resets, (long)timelabels[v]), timepos+sideBorder+2, zeroPoint+2 * graphAxisFontSize +offset);
+//							}
 						}
 						g2.setColor(graphAxisColor);
 						if (graphFrame.showVerticalLines) {
@@ -522,15 +531,15 @@ public class GraphPanel extends GraphCanvas {
 
 	//	int skip = 0;
 		plotGraph(graphData, graphHeight, graphWidth, start, end, stepSize, sideBorder, minTimeValue, 
-				maxTimeValue, minValue, maxValue, 0, conversionType, true);
+				maxTimeValue, minValue, maxValue, 0, true);
 		if (drawGraph2)
 			plotGraph(graphData2, graphHeight, graphWidth, start, end, stepSize, sideBorder, minTimeValue, 
-					maxTimeValue, minValue2, maxValue2, graphFrame.fieldName.length, graphFrame.conversionType2, false);
+					maxTimeValue, minValue2, maxValue2, graphFrame.fieldName.length, false);
 		
 	}
 
 	private void plotGraph(double[][][] graphData, int graphHeight, int graphWidth, int start, int end, int stepSize, int sideBorder, double minTimeValue, 
-			double maxTimeValue, double minValue, double maxValue, int colorIdx, int graphType, boolean plotDsp) {
+			double maxTimeValue, double minValue, double maxValue, int colorIdx, boolean plotDsp) {
 		if (graphData != null)
 			for (int j=0; j<graphData.length; j++) {
 				int lastx = sideBorder+1; 
@@ -548,10 +557,10 @@ public class GraphPanel extends GraphCanvas {
 				for (int i=start; i < end; i+=stepSize) {
 
 					// calculate the horizontal position of this point based on the number of points and the width
-					double p = graphData[j][PayloadStore.UPTIME_COL][i];
+					double p = graphData[j][DataTable.UPTIME_COL][i];
 					x = getRatioPosition(minTimeValue, maxTimeValue, p, graphWidth);
 					if (i < end-stepSize) {
-						double q = graphData[j][PayloadStore.UPTIME_COL][i+stepSize];
+						double q = graphData[j][DataTable.UPTIME_COL][i+stepSize];
 					
 						nextx = getRatioPosition(minTimeValue, maxTimeValue, q, graphWidth);
 						nextx = nextx + sideBorder;
@@ -560,44 +569,44 @@ public class GraphPanel extends GraphCanvas {
 					
 					x = x + sideBorder; // sideborder is the position of this reset, unless its the first one, which is equal to this.sideBorder
 
-					plottedXreset[x-this.sideBorder] = (int) graphData[j][PayloadStore.RESETS_COL][i];
-					plottedXuptime[x-this.sideBorder] = (long) graphData[j][PayloadStore.UPTIME_COL][i];
+					plottedXreset[x-this.sideBorder] = (int) graphData[j][DataTable.RESETS_COL][i];
+					plottedXuptime[x-this.sideBorder] = (long) graphData[j][DataTable.UPTIME_COL][i];
 
 					
 					// draw the sun if requested by user
-					long up = (long) graphData[j][PayloadStore.UPTIME_COL][i];
-					int res = (int) graphData[j][PayloadStore.RESETS_COL][i];
+					long up = (long) graphData[j][DataTable.UPTIME_COL][i];
+					int res = (int) graphData[j][DataTable.RESETS_COL][i];
 					SatPos pos = null;
-					try {
-						 pos = this.fox.getSatellitePosition(res, up);
-					} catch (PositionCalcException e) {
-						// Ignore, we just don't plot it
-						pos = null;
-					}
+//					try {
+//						 pos = this.fox.getSatellitePosition(res, up);
+//					} catch (PositionCalcException e) {
+//						// Ignore, we just don't plot it
+//						pos = null;
+//					}
 					
 					x2 = (x + lastx)/2; // position for the first deriv
 					//				System.out.println(x + " graphData " + graphData[i]);
 
 					// Calculate the ratio from min to max
-					if (graphType == BitArrayLayout.CONVERT_ANTENNA || graphType == BitArrayLayout.CONVERT_STATUS_BIT 
-							|| graphType == BitArrayLayout.CONVERT_BOOLEAN  || graphType == BitArrayLayout.CONVERT_VULCAN_STATUS ) 
+//					if (graphType == BitArrayLayout.CONVERT_ANTENNA || graphType == BitArrayLayout.CONVERT_STATUS_BIT 
+//							|| graphType == BitArrayLayout.CONVERT_BOOLEAN  || graphType == BitArrayLayout.CONVERT_VULCAN_STATUS ) 
+//						//if (graphFrame.displayMain)
+//						y = getRatioPosition(minValue, maxValue, graphData[j][PayloadStore.DATA_COL][i]+1, graphHeight);
+//					else if (graphType == BitArrayLayout.CONVERT_FREQ) {
+//						//if (graphFrame.displayMain)
+//						y = getRatioPosition(minValue, maxValue, graphData[j][PayloadStore.DATA_COL][i]-freqOffset, graphHeight);
+//						if (graphFrame.plotDerivative && plotDsp && j==0)
+//							y2 = getRatioPosition(minValue, maxValue, firstDifference[i], graphHeight);
+//						if (graphFrame.dspAvg && plotDsp && j==0)
+//							y3 = getRatioPosition(minValue, maxValue, dspData[i]-freqOffset, graphHeight);
+//					} else {
 						//if (graphFrame.displayMain)
-						y = getRatioPosition(minValue, maxValue, graphData[j][PayloadStore.DATA_COL][i]+1, graphHeight);
-					else if (graphType == BitArrayLayout.CONVERT_FREQ) {
-						//if (graphFrame.displayMain)
-						y = getRatioPosition(minValue, maxValue, graphData[j][PayloadStore.DATA_COL][i]-freqOffset, graphHeight);
-						if (graphFrame.plotDerivative && plotDsp && j==0)
-							y2 = getRatioPosition(minValue, maxValue, firstDifference[i], graphHeight);
-						if (graphFrame.dspAvg && plotDsp && j==0)
-							y3 = getRatioPosition(minValue, maxValue, dspData[i]-freqOffset, graphHeight);
-					} else {
-						//if (graphFrame.displayMain)
-						y = getRatioPosition(minValue, maxValue, graphData[j][PayloadStore.DATA_COL][i], graphHeight);
+						y = getRatioPosition(minValue, maxValue, graphData[j][DataTable.DATA_COL][i], graphHeight);
 						if (graphFrame.plotDerivative && plotDsp && j==0)
 							y2 = getRatioPosition(minValue, maxValue, firstDifference[i], graphHeight);
 						if (graphFrame.dspAvg && plotDsp && j==0)
 							y3 = getRatioPosition(minValue, maxValue, dspData[i], graphHeight);
-					}
+//					}
 					y=graphHeight-y+topBorder;
 					y2=graphHeight-y2+topBorder;
 					y3=graphHeight-y3+topBorder;
@@ -646,12 +655,12 @@ public class GraphPanel extends GraphCanvas {
 					}
 
 					if (graphFrame.plotDerivative && plotDsp && j==0) {
-						g2.setColor(Config.AMSAT_RED);
+						g2.setColor(Tools.AMSAT_RED);
 						if (!graphFrame.hideLines) g2.drawLine(lastx2, lasty2, x2, y2);
 						if (!graphFrame.hidePoints) g2.draw(new Ellipse2D.Double(x2, y2,2,2));
 					}
 					if (graphFrame.dspAvg && plotDsp && j==0) {
-						g2.setColor(Config.AMSAT_GREEN);
+						g2.setColor(Tools.AMSAT_GREEN);
 						if (!graphFrame.hideLines) g2.drawLine(lastx, lasty3, x, y3);
 						if (!graphFrame.hidePoints) g2.draw(new Ellipse2D.Double(x, y3,2,2));
 					}

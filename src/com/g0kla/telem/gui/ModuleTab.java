@@ -43,6 +43,7 @@ import javax.swing.plaf.basic.BasicSplitPaneUI;
 import com.g0kla.telem.data.ByteArrayLayout;
 import com.g0kla.telem.data.EpochTime;
 import com.g0kla.telem.data.LayoutLoadException;
+import com.g0kla.telem.segDb.SatTelemStore;
 import com.g0kla.telem.segDb.Spacecraft;
 
 /**
@@ -158,9 +159,12 @@ public abstract class ModuleTab extends JPanel implements Runnable, FocusListene
 	protected DataRecordTableModel recordTableModel;
 	protected JTable table;
 	protected ByteArrayLayout layout;
-
+	Spacecraft sat; 
+	SatTelemStore db;
 	
-	public ModuleTab(ByteArrayLayout layout) {
+	public ModuleTab(ByteArrayLayout layout, Spacecraft sat, SatTelemStore db) {
+		this.sat = sat;
+		this.db = db;
 		this.layout = layout;
 		setLayout(new BorderLayout(0, 0));
 
@@ -473,14 +477,14 @@ public abstract class ModuleTab extends JPanel implements Runnable, FocusListene
 		
 		// Process the top Modules - which run from 1 to 9
 		for (int i=1; i < numOfTopModules; i++) {
-			topModules[i] = new DisplayModule(rt, topModuleNames[i], topModuleLines[i]+1, moduleType, displayModuleFontSize);
+			topModules[i] = new DisplayModule(rt, topModuleNames[i], topModuleLines[i]+1, moduleType, displayModuleFontSize, sat, db);
 			addModuleLines(topModules[i], topModuleNames[i], topModuleLines[i], rt);
 			topHalf.add(topModules[i]);
 		}
 
 		// Process the bottom Modules - which run from 10 to 19
 		for (int i=1; i < numOfBottomModules; i++) {
-			bottomModules[i] = new DisplayModule(rt, bottomModuleNames[i], bottomModuleLines[i]+1, moduleType, displayModuleFontSize);
+			bottomModules[i] = new DisplayModule(rt, bottomModuleNames[i], bottomModuleLines[i]+1, moduleType, displayModuleFontSize, sat, db);
 			addModuleLines(bottomModules[i], bottomModuleNames[i], bottomModuleLines[i], rt);
 			bottomHalf.add(bottomModules[i]);
 		}

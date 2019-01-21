@@ -18,12 +18,16 @@ import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JComponent;
+import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.border.TitledBorder;
 
 import com.g0kla.telem.data.ByteArrayLayout;
+import com.g0kla.telem.data.DataLoadException;
 import com.g0kla.telem.data.DataRecord;
+import com.g0kla.telem.segDb.SatTelemStore;
+import com.g0kla.telem.segDb.Spacecraft;
 
 /**
  * 
@@ -65,6 +69,8 @@ public class DisplayModule extends JPanel implements ActionListener, MouseListen
 
 	int size = 0;
 	int satId;
+	Spacecraft sat;
+	SatTelemStore db;
 	double scale; // amount to scale the modules by given the Font size
 	String[] fieldName = null;  // string used to lookup new values
 	JLabel[] rtValue = null;   // the RT value displated
@@ -154,10 +160,12 @@ public class DisplayModule extends JPanel implements ActionListener, MouseListen
 	 * @param title
 	 * @param size
 	 */
-	public DisplayModule(ByteArrayLayout layout, String title, int size, int modType, int displayModuleFontSize) {
+	public DisplayModule(ByteArrayLayout layout, String title, int size, int modType, int displayModuleFontSize, Spacecraft sat, SatTelemStore db) {
 		this.displayModuleFontSize = displayModuleFontSize;
-//		fox = fox2;
-//		foxId = fox.foxId;
+		this.db = db;
+		this.sat = sat;
+		satId = sat.satId;
+		this.layout = layout;
 		this.size = size;
 		this.title = title;
 		TitledBorder border = new TitledBorder(null, title, TitledBorder.LEADING, TitledBorder.TOP, null, null);
@@ -271,7 +279,7 @@ public class DisplayModule extends JPanel implements ActionListener, MouseListen
 	}
 
 
-	public void updateValues(DataRecord rt) {
+	public void updateValues(DataRecord rt) throws NumberFormatException, IOException, DataLoadException {
 		rtPayload = rt;
 		for (int i=0; i < size; i++) {
 			if(fieldName[i] != null) {
@@ -288,7 +296,7 @@ public class DisplayModule extends JPanel implements ActionListener, MouseListen
 		}
 	}
 	
-	public void updateSingleValue(int line, String value) {
+	public void updateSingleValue(int line, String value) throws NumberFormatException, IOException, DataLoadException {
 		rtValue[line].setFont(new Font("SansSerif", Font.PLAIN, displayModuleFontSize));
 		rtValue[line].setText(value);
 		for (int p=0; p < GraphFrame.MAX_PLOT_TYPES; p++)
@@ -428,6 +436,20 @@ public class DisplayModule extends JPanel implements ActionListener, MouseListen
 	}
 
 	public void displayGraph(int i, int plotType) {
+		try {
+			graph[plotType][i] = new GraphFrame(title + " - " + label[i].getText(), sat, fieldName[i], layout, plotType, db);
+			graph[plotType][i].setVisible(true);
+		} catch (NumberFormatException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (DataLoadException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
 //		try {
 //			if (graph[plotType][i] == null) {
 //				int conversion = BitArrayLayout.CONVERT_NONE;
