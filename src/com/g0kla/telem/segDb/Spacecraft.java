@@ -27,9 +27,8 @@ import uk.me.g4dpz.satellite.TLE;
 public class Spacecraft implements Comparable<Spacecraft> {
 	public Properties properties; // Java properties file for user defined values
 	public File propertiesFile;
-	public String dirName;
 	SpacecraftPositionCache positionCache;
-
+	String dirName;
 
 	boolean epochUsesT0 = false; // if false uptime is seconds since Unix epoch
 	
@@ -99,13 +98,13 @@ public class Spacecraft implements Comparable<Spacecraft> {
             "2 40967 064.7791 061.1881 0209866 223.3946 135.0462 14.74939952014747"};
 	*/
 	
-	public Spacecraft(String dir, File fileName) throws LayoutLoadException, IOException {
-		dirName = dir;
+	public Spacecraft(File fileName) throws LayoutLoadException, IOException {
 		properties = new Properties();
 		propertiesFile = fileName;	
+		dirName = fileName.getParent();
 		tleList = new SortedTleList(10);
-		positionCache = new SpacecraftPositionCache(satId);
-
+		//positionCache = new SpacecraftPositionCache(satId); // need to have loaded to set the id??
+		load();
 	}
 		
 	public int getLayoutIdxByName(String name) {
@@ -284,31 +283,16 @@ public class Spacecraft implements Comparable<Spacecraft> {
 			name = getProperty("name");
 			description = getProperty("description");
 			model = Integer.parseInt(getProperty("model"));
-			telemetryDownlinkFreqkHz = Integer.parseInt(getProperty("telemetryDownlinkFreqkHz"));			
-			minFreqBoundkHz = Integer.parseInt(getProperty("minFreqBoundkHz"));
-			maxFreqBoundkHz = Integer.parseInt(getProperty("maxFreqBoundkHz"));
 
-			// Frame Layouts
-			/**
-			numberOfFrameLayouts = Integer.parseInt(getProperty("numberOfFrameLayouts"));
-			frameLayoutFilename = new String[numberOfFrameLayouts];
-			frameLayout = new FrameLayout[numberOfFrameLayouts];
-			for (int i=0; i < numberOfFrameLayouts; i++) {
-				frameLayoutFilename[i] = getProperty("frameLayout"+i+".filename");
-				frameLayout[i] = new FrameLayout(frameLayoutFilename[i]);
-				frameLayout[i].name = getProperty("frameLayout"+i+".name");
-			}
-			*/
-			
-			
 			// Telemetry Layouts
 			numberOfLayouts = Integer.parseInt(getProperty("numberOfLayouts"));
 			layoutFilename = new String[numberOfLayouts];
 			layout = new ByteArrayLayout[numberOfLayouts];
 			for (int i=0; i < numberOfLayouts; i++) {
-				layoutFilename[i] = getProperty("layout"+i+".filename");
-				layout[i] = new ByteArrayLayout("layout"+i+".name", layoutFilename[i]);
-				layout[i].name = getProperty("layout"+i+".name");
+				layoutFilename[i] = dirName + File.separator + getProperty("layout"+i+".filename");
+				String name = getProperty("layout"+i+".name");
+				layout[i] = new ByteArrayLayout(name, layoutFilename[i]);
+				layout[i].name = name;
 				layout[i].parentLayout = getOptionalProperty("layout"+i+".parentLayout");
 			}
 
@@ -317,7 +301,7 @@ public class Spacecraft implements Comparable<Spacecraft> {
 			lookupTableFilename = new String[numberOfLookupTables];
 			lookupTable = new LookUpTable[numberOfLookupTables];
 			for (int i=0; i < numberOfLookupTables; i++) {
-				lookupTableFilename[i] = getProperty("lookupTable"+i+".filename");
+				lookupTableFilename[i] = dirName + File.separator + getProperty("lookupTable"+i+".filename");
 				lookupTable[i] = new LookUpTable(lookupTableFilename[i]);
 				lookupTable[i].name = getProperty("lookupTable"+i);
 			}
