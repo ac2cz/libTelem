@@ -64,8 +64,8 @@ public class GraphPanel extends GraphCanvas {
 	int sideLabel = 0;
 	int bottomLabelOffset = 5;
 	
-	GraphPanel(String title, int satId, ByteArrayLayout layout, GraphFrame gf, Spacecraft sat, SatTelemStore db) throws NumberFormatException, IOException, DataLoadException {
-		super(title, satId, layout, gf, db);
+	GraphPanel(String title, Spacecraft sat, ByteArrayLayout layout, GraphFrame gf, SatTelemStore db) throws NumberFormatException, IOException, DataLoadException {
+		super(title, sat, layout, gf, db);
 		this.sat = sat;
 //		freqOffset = fox2.telemetryDownlinkFreqkHz * 1000;
 		updateGraphData("GrapPanel.new");

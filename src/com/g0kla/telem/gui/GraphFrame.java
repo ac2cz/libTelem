@@ -196,7 +196,7 @@ public class GraphFrame extends JFrame implements WindowListener, ActionListener
 	public boolean showSun = false;
 	public boolean hidePoints = false;
 	public boolean hideLines = false;
-	public boolean showContinuous = true;
+	public boolean showContinuous = false;
 	public int showLatest = 0;
 	public static final int SHOW_LIVE = 0;
 	public static final int SHOW_RANGE = 2;
@@ -279,10 +279,10 @@ public class GraphFrame extends JFrame implements WindowListener, ActionListener
 //			panel = new DensityPlotPanel(title, conversionType, payloadType, this, (FoxSpacecraft)fox2);
 //			contentPane.add(panel, BorderLayout.CENTER);
 		} else if (plotType == EARTH_PLOT){
-//			panel = new EarthPlotPanel(title, conversionType, payloadType, this, (FoxSpacecraft)fox2);
-//			contentPane.add(panel, BorderLayout.CENTER);
+			panel = new EarthPlotPanel(title, sat, layout, this, db);
+			contentPane.add(panel, BorderLayout.CENTER);
 		} else {
-			panel = new GraphPanel(title, satId, layout, this, sat, db);
+			panel = new GraphPanel(title, sat, layout, this, db);
 			contentPane.add(panel, BorderLayout.CENTER);
 		}
 
@@ -1065,7 +1065,7 @@ public class GraphFrame extends JFrame implements WindowListener, ActionListener
 	private void toggleSunCheckBox() {
 		if (!textDisplay)
 			if (!(plotType == SKY_PLOT || plotType == EARTH_PLOT))
-				if (cbShowSun !=null)
+				if (cbShowSun !=null) {
 //				if (Config.foxTelemCalcsPosition) {
 //					cbShowSun.setSelected(showSun);
 //					cbShowSun.setEnabled(true);
@@ -1073,6 +1073,7 @@ public class GraphFrame extends JFrame implements WindowListener, ActionListener
 					cbShowSun.setSelected(false);
 					cbShowSun.setEnabled(false);
 //				}
+				}
 	}
 
 	private void setRedOutline(JButton but, boolean red) {

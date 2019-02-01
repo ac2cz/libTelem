@@ -58,6 +58,14 @@ public class SortedArrayList<T extends Comparable<T>> extends ArrayList<T> {
 		return false; // this was already in the list and would be a duplicate
 	}
 	
+	public T get(T img) {
+		int pos = Collections.binarySearch(this, img);
+	    if (pos < 0) {
+	        return null; 
+	    }
+		return get(pos);
+	}
+	
 	/**
      * Add an item to the array and insert it at the correct place
      * 

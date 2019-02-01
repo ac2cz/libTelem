@@ -2,6 +2,7 @@ package com.g0kla.telem.server;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.text.DateFormat;
@@ -50,7 +51,7 @@ public class STP implements Comparable<STP> {
 	// the user. May vary over life of program
 	// usage, so stored
 	private String frequency = NONE; // frequency when this frame received
-	private String source; // The frame source subsystem
+	public String source; // The frame source subsystem
 	private String length; // The frame length in bytes.  Should be bytes.length
 	public String rx_location = NONE; // the lat, long and altitude
 	public String receiver_rf = NONE; // human description of the receiver
@@ -97,6 +98,18 @@ public class STP implements Comparable<STP> {
 		length = ""+bytes.length;
 	}
 
+	/**
+	 * Constructor to create a new STP record from a kiss frame
+	 * @param id
+	 * @param stpDate
+	 * @param callsign
+	 * @param location
+	 * @param stationDetails
+	 * @param software
+	 * @param recordSource
+	 * @param sequenceNum
+	 * @param data
+	 */
 	public STP(int id, Date stpDate, String callsign, String location, String stationDetails, 
 			String software, String recordSource, long sequenceNum, int[] data) {
 		satId = id;
@@ -113,8 +126,22 @@ public class STP implements Comparable<STP> {
 		length = ""+bytes.length;
 	}
 	
+	/**
+	 * Constructor for a new STP record read as the next line from a file
+	 * @param file
+	 * @throws IOException
+	 */
 	public STP(BufferedReader file) throws IOException {
 		load(file);
+	}
+
+	/**
+	 * Constructor for a new STP record given bytes received by the server
+	 * @param data
+	 * @throws IOException
+	 */
+	public STP(int[] data) throws IOException {
+		parseFromBytes(data);
 	}
 
 	
@@ -249,9 +276,26 @@ public class STP implements Comparable<STP> {
 	 * @throws StpFileProcessException 
 	 * @throws LayoutLoadException
 	 */
-	public static STP loadStp(String fileName) throws IOException, StpFileProcessException {
-		
+	public STP(String fileName) throws IOException, StpFileProcessException {
+		boolean done = false;
+		int c,p = 0;
+		File infile = new File(fileName);
 		FileInputStream in = new FileInputStream(fileName);
+		int[] data = new int[(int) infile.length()];
+		try {
+			while ((c = in.read()) != -1) {
+				data[p++] = c;
+			}			
+		} finally {
+			in.close();
+		}
+		in.close();
+
+		parseFromBytes(data);
+
+	}
+
+	public void parseFromBytes(int[] data) {
 		int c;
 		int lineLen = 0;
 
@@ -261,135 +305,106 @@ public class STP implements Comparable<STP> {
 		String value = "";
 		int[] rawFrame = null;
 		int length = 0;
-		String receiver = null;
-		Date stpDate = null;
-		String frequency = NONE; // frequency when this frame received
-		String source = null; // The frame source subsystem
-		String rx_location = NONE; // the lat, long and altitude
-		String receiver_rf = NONE; // human description of the receiver
-		String demodulator = null; // will contain Config.VERSION
-		long sequenceNumber = Sequence.ERROR_NUMBER;
-		
-		String measuredTCA = NONE; // time of TCA
-		String measuredTCAfrequency = NONE;
-		
+		receiver = null;
+		stpDate = null;
+		frequency = NONE; // frequency when this frame received
+		source = null; // The frame source subsystem
+		rx_location = NONE; // the lat, long and altitude
+		receiver_rf = NONE; // human description of the receiver
+		demodulator = null; // will contain Config.VERSION
+		sequenceNumber = Sequence.ERROR_NUMBER;
+
+		measuredTCA = NONE; // time of TCA
+		measuredTCAfrequency = NONE;
+
 		boolean firstColon = true;
+		int p = 0; // position in the data
 		char ch;
 		// Read the file
-		try {
-			while (!done && (c = in.read()) != -1) {
-				ch = (char) c;
-				//System.out.print(ch);
 
-				if (c == 58 && firstColon) { // ':'
-					firstColon = false;
-					c = in.read(); // consume the space
-					c = in.read();
-					ch = (char) c; // set ch to the first character
-					readingKey = false;
-				}
-				if ( (c == 13 || c == 10)) { // CR or LF
-					c = in.read(); // consume the lf
-					if ((length != 0) && lineLen == 1) {
-						// then we are ready to process
-						rawFrame = new int[length/8];
-						for (int i=0; i<length/8; i++) {
-							rawFrame[i] = in.read();
-						}
-						done = true;
-					} else {
-						// It was a header line
-						readingKey = true;
-						firstColon = true;
-						if (key.startsWith("Length")) {
-							length = Integer.parseInt(value);
-						}
-						if (key.equalsIgnoreCase("Receiver")) {
-							receiver = value;
-							//                		System.out.println(key + " " + value);
-						}
-						if (key.equalsIgnoreCase("Frequency")) {
-							frequency = value;
-							//                		System.out.println(key + " " + value);
-						}
-						if (key.equalsIgnoreCase("Rx-location")) {
-							rx_location = value;
-							//                		System.out.println(key + " " + value);
-						}
-						if (key.equalsIgnoreCase("Receiver-RF")) {
-							receiver_rf = value;
-							//                		System.out.println(key + " " + value);
-						}
-						if (key.equalsIgnoreCase("Demodulator")) {
-							demodulator = value;
-							//                		System.out.println(key + " " + value);
-						}
-						if (key.endsWith("Sequence")) {
-							sequenceNumber = Long.parseLong(value);
-							//System.out.println(key + " *** " + value);
-						}
-						if (key.equalsIgnoreCase("MeasuredTCA")) {
-							measuredTCA = value;
-							//                		System.out.println(key + " " + value);
-						}
-						if (key.equalsIgnoreCase("MeasuredTCAfrequency")) {
-							measuredTCAfrequency = value;
-							//                		System.out.println(key + " " + value);
-						}
-						if (key.startsWith("Date")) {
-							//                		System.out.println(key + " " + value);
-							String dt = value.replace(" UTC", "");
-							stpDateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
-							try {
-								stpDate = stpDateFormat.parse(dt);
-							} catch (ParseException e) {
-								//Log.println("ERROR - Date was not parsable. Setting to null");
-								stpDate = null;
-								//e.printStackTrace(Log.getWriter());
-							} catch (NumberFormatException e) {
-								//Log.println("ERROR - Date has number format exception. Setting to null");
-								stpDate = null;
-							} catch (Exception e) { // we can get other unusual exceptions such as ArrayIndexOutOfBounds...
-								//Log.println("ERROR - Date was not parsable. Setting to null: " + e.getMessage());
-								stpDate = null;
-								//e.printStackTrace(Log.getWriter());								
-							}
-						}
-						key = "";
-						value = "";
-						lineLen = 0;
-					}
-				} else {
-					if (readingKey) 
-						key = key + ch;
-					else
-						value = value + ch;
-				}
-				lineLen++;
+		while (!done && (c = data[p++]) != -1) {
+			ch = (char) c;
+			//System.out.print(ch);
 
+			if (c == 58 && firstColon) { // ':'
+				firstColon = false;
+				c = data[p++]; // consume the space
+				c = data[p++];
+				ch = (char) c; // set ch to the first character
+				readingKey = false;
 			}
-
-		} finally {
-			in.close();
+			if ( (c == 13 || c == 10)) { // CR or LF
+				c = data[p++]; // consume the lf
+				if ((length != 0) && lineLen == 1) {
+					// then we are ready to process
+					rawFrame = new int[length/8];
+					for (int i=0; i<length/8; i++) {
+						rawFrame[i] = data[p++];
+					}
+					done = true;
+				} else {
+					// It was a header line
+					readingKey = true;
+					firstColon = true;
+					if (key.startsWith("Length")) {
+						this.length = value;
+						length = Integer.parseInt(value);
+					}
+					if (key.equalsIgnoreCase("Receiver")) {
+						receiver = value;
+					}
+					if (key.equalsIgnoreCase("Frequency")) {
+						frequency = value;
+					}
+					if (key.equalsIgnoreCase("Rx-location")) {
+						rx_location = value;
+					}
+					if (key.equalsIgnoreCase("Source")) {
+						source = value;
+					}
+					if (key.equalsIgnoreCase("Receiver-RF")) {
+						receiver_rf = value;
+					}
+					if (key.equalsIgnoreCase("Demodulator")) {
+						demodulator = value;
+					}
+					if (key.endsWith("Sequence")) {
+						sequenceNumber = Long.parseLong(value);
+					}
+					if (key.equalsIgnoreCase("MeasuredTCA")) {
+						measuredTCA = value;
+					}
+					if (key.equalsIgnoreCase("MeasuredTCAfrequency")) {
+						measuredTCAfrequency = value;
+					}
+					if (key.startsWith("Date")) {
+						String dt = value.replace(" UTC", "");
+						stpDateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+						try {
+							stpDate = stpDateFormat.parse(dt);
+						} catch (ParseException e) {
+							stpDate = null;
+						} catch (NumberFormatException e) {
+							stpDate = null;
+						} catch (Exception e) { // we can get other unusual exceptions such as ArrayIndexOutOfBounds...
+							stpDate = null;
+						}
+					}
+					key = "";
+					value = "";
+					lineLen = 0;
+				}
+			} else {
+				if (readingKey) 
+					key = key + ch;
+				else
+					value = value + ch;
+			}
+			lineLen++;
 		}
-		in.close();
-
-		if (rawFrame == null) {
-			// We failed to process the file
-			//Log.println("Failed to Process STP file. RAW FRAME is null.  No content.  Likely SPAM or broken connection.");
-			return null;
-			
-		}
-
-//		public STP(int id, Date stpDate, String callsign, String location, String stationDetails, 
-//				String software, String recordSource, int sequenceNum, byte[] data)
-		STP frame = new STP(0, stpDate, receiver, rx_location, receiver_rf, demodulator, source, sequenceNumber, rawFrame);
-
-		frame.frequency = frequency;
-		frame.measuredTCA = measuredTCA;
-		frame.measuredTCAfrequency = measuredTCAfrequency;
-
-		return frame;
+		if (stpDate == null)
+			stpDate = new Date(0);
+		bytes = rawFrame;
 
 	}
 
@@ -501,6 +516,14 @@ public class STP implements Comparable<STP> {
 			buffer[j++] = b;
 
 		return buffer;
+	}
+	
+	public String toString() {
+		String s = "";
+		s = getSTPCoreHeader();
+		s = s + getSTPExtendedHeader();
+		s = s + "\n";
+		return s;
 	}
 
 }

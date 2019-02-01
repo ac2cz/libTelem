@@ -3,11 +3,14 @@ package com.g0kla.telem.segDb;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.io.Writer;
+import java.nio.channels.FileChannel;
 import java.util.StringTokenizer;
 
 import com.g0kla.telem.data.ByteArrayLayout;
@@ -683,6 +686,36 @@ public class DataTable {
 		for (TableSeg seg: tableIdx)
 			remove(dbDir+File.separator + seg.fileName);
 		remove(fileName + ".idx");
+	}
+	
+	/**
+	 * Utility function to copy a file
+	 * @param sourceFile
+	 * @param destFile
+	 * @throws IOException
+	 */
+	@SuppressWarnings("resource") // because we have a finally statement and the checker does not seem to realize that
+	public static void copyFile(File sourceFile, File destFile) throws IOException {
+	    if(!destFile.exists()) {
+	        destFile.createNewFile();
+	    }
+
+	    FileChannel source = null;
+	    FileChannel destination = null;
+
+	    try {
+	        source = new FileInputStream(sourceFile).getChannel();
+	        destination = new FileOutputStream(destFile).getChannel();
+	        destination.transferFrom(source, 0, source.size());
+	    }
+	    finally {
+	        if(source != null) {
+	            source.close();
+	        }
+	        if(destination != null) {
+	            destination.close();
+	        }
+	    }
 	}
 	
 	public static void remove(String f) throws IOException, SecurityException {

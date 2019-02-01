@@ -8,6 +8,7 @@ public class DataRecord implements Comparable<DataRecord> {
 	public static final int ERROR_VALUE = 999999999; 
 	public static final double NO_POSITION_DATA = -999;
 	public static final double NO_TLE = -998;
+	public static final double NO_T0 = -997;
 	
 	public ByteArrayLayout layout;
 	public int[] fieldValue = null;

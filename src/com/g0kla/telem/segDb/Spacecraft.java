@@ -1,10 +1,14 @@
 package com.g0kla.telem.segDb;
 
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.Writer;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -12,13 +16,17 @@ import java.util.Properties;
 import java.util.TimeZone;
 
 import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 
 import com.g0kla.telem.data.ByteArrayLayout;
+import com.g0kla.telem.data.DataRecord;
 import com.g0kla.telem.data.EpochTime;
 import com.g0kla.telem.data.LayoutLoadException;
+import com.g0kla.telem.predict.FoxTLE;
 import com.g0kla.telem.predict.PositionCalcException;
 import com.g0kla.telem.predict.SortedTleList;
 
+import uk.me.g4dpz.satellite.GroundStationPosition;
 import uk.me.g4dpz.satellite.SatPos;
 import uk.me.g4dpz.satellite.Satellite;
 import uk.me.g4dpz.satellite.SatelliteFactory;
@@ -28,7 +36,9 @@ public class Spacecraft implements Comparable<Spacecraft> {
 	public Properties properties; // Java properties file for user defined values
 	public File propertiesFile;
 	SpacecraftPositionCache positionCache;
-	String dirName;
+	String dirName; // the directory that the spacecraft config file is in.  Where the layouts are.  In the install dir
+	String spacecraftLogDir; // the directory that the logs are in.  Where we put the TLEs.  Writable.
+	GroundStationPosition position; // place to cache the ground station position for calculations
 
 	boolean epochUsesT0 = false; // if false uptime is seconds since Unix epoch
 	
@@ -98,13 +108,18 @@ public class Spacecraft implements Comparable<Spacecraft> {
             "2 40967 064.7791 061.1881 0209866 223.3946 135.0462 14.74939952014747"};
 	*/
 	
-	public Spacecraft(File fileName) throws LayoutLoadException, IOException {
+	public Spacecraft(String spacecraftLogDir, File fileName) throws LayoutLoadException, IOException {
 		properties = new Properties();
 		propertiesFile = fileName;	
 		dirName = fileName.getParent();
+		this.spacecraftLogDir = spacecraftLogDir;
 		tleList = new SortedTleList(10);
-		//positionCache = new SpacecraftPositionCache(satId); // need to have loaded to set the id??
+		positionCache = new SpacecraftPositionCache(satId); // need to have loaded to set the id??
 		load();
+	}
+	
+	public void setGroundStationPosition(GroundStationPosition pos) {
+		position = pos;
 	}
 		
 	public int getLayoutIdxByName(String name) {
@@ -151,118 +166,113 @@ public class Spacecraft implements Comparable<Spacecraft> {
 	
 	/**
 	 * TLEs are stored in the spacecraft directory in the logFileDirectory.
+	 * @throws TleFileException 
 	 * @throws IOException 
 	 */
-//	protected void loadTleHistory() {
-//		String file = dirName + File.separator + series + this.foxId + ".tle";
-//		if (!Config.logFileDirectory.equalsIgnoreCase("")) {
-//			file = Config.logFileDirectory + File.separator + file;		
-//		}
-//		
-//		File f = new File(file);
-//		InputStream is = null;
-//		try {
-//			is = new FileInputStream(f);
-//			tleList = FoxTLE.importFoxSat(is);
-//		} catch (IOException e) {
-//			Log.println("TLE file not loaded: " + file);
-//			//e.printStackTrace(Log.getWriter()); // No TLE, but this is not viewed as fatal.  It should be fixed by Kep check
-//		} finally {
-//			try {
-//				if (is != null) is.close();
-//			} catch (IOException e) {
-//				// TODO Auto-generated catch block
-//				e.printStackTrace();
-//			}
-//		}
-//		
-//	}
-//	
-//	private void saveTleHistory() throws IOException {
-//		String file = FoxSpacecraft.SPACECRAFT_DIR + File.separator + series + this.foxId + ".tle";
-//		if (!Config.logFileDirectory.equalsIgnoreCase("")) {
-//			file = Config.logFileDirectory + File.separator + file;		
-//		}
-//		File f = new File(file);
-//		Writer output = new BufferedWriter(new FileWriter(f, false));
-//		for (FoxTLE tle : tleList) {
-//			//Log.println("Saving TLE to file: " + tle.toString() + ": " + tle.getEpoch());
-//			output.write(tle.toFileString());
-//		}
-//		output.flush();
-//		output.close();
-//	}
-//	
-//	/**
-//	 * We are passed a new TLE for this spacecarft.  We want to store it in the file if it is a TLE that we do not already have.
-//	 * @param tle
-//	 * @return
-//	 * @throws IOException 
-//	 */
-//	public boolean addTLE(FoxTLE tle) throws IOException {
-//		tleList.add(tle);
-//		saveTleHistory();
-//		return true;
-//	}
-//	
-//	protected TLE getTLEbyDate(DateTime dateTime) throws PositionCalcException {
-//		if (tleList == null) return null;
-//		TLE t = tleList.getTleByDate(dateTime);
-//		if (t==null) {
-//			satPosErrorCode = FramePart.NO_TLE;
-//			throw new PositionCalcException(FramePart.NO_TLE);
-//		}
-//		return t;
-//	}
-//	
-//	
-//	
-//	/**
-//	 * Calculate the position at a historical data/time
-//	 * Typically we don't call this directly.  Instead we call with the reset/uptime and hope that the value is already cached
-//	 * @param timeNow
-//	 * @return
-//	 * @throws PositionCalcException
-//	 */
-//	public SatPos calcSatellitePosition(DateTime timeNow) throws PositionCalcException {
-//		final TLE tle = getTLEbyDate(timeNow);
-////		if (Config.debugFrames) Log.println("TLE Selected fOR date: " + timeNow + " used TLE epoch " + tle.getEpoch());
-//		if (tle == null) {
-//			satPosErrorCode = FramePart.NO_TLE;
-//			throw new PositionCalcException(FramePart.NO_TLE); // We have no keps
-//		}
-//		final Satellite satellite = SatelliteFactory.createSatellite(tle);
-//        final SatPos satellitePosition = satellite.getPosition(Config.GROUND_STATION, timeNow.toDate());
-//		return satellitePosition;
-//	}
-//
-//	/**
-//	 * Calculate the current position and cache it
-//	 * @return
-//	 * @throws PositionCalcException
-//	 */
-//	protected SatPos calcualteCurrentPosition() throws PositionCalcException {
-//		DateTime timeNow = new DateTime(DateTimeZone.UTC);
-//		SatPos pos = null;
-//		pos = calcSatellitePosition(timeNow);
-//		satPos = pos;
+	public void loadTleHistory() throws TleFileException {
+		String file = spacecraftLogDir + File.separator + name + ".tle";
+		
+		File f = new File(file);
+		InputStream is = null;
+		try {
+			is = new FileInputStream(f);
+			tleList = FoxTLE.importFoxSat(is);
+		} catch (IOException e) {
+			throw new TleFileException("TLE file not loaded: " + file);
+			//e.printStackTrace(Log.getWriter()); // No TLE, but this is not viewed as fatal.  It should be fixed by Kep check
+		} finally {
+			try {
+				if (is != null) is.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		
+	}
+	
+	private void saveTleHistory() throws IOException {
+		String file = spacecraftLogDir + File.separator + name + ".tle";
+		File f = new File(file);
+		Writer output = new BufferedWriter(new FileWriter(f, false));
+		for (FoxTLE tle : tleList) {
+			//Log.println("Saving TLE to file: " + tle.toString() + ": " + tle.getEpoch());
+			output.write(tle.toFileString());
+		}
+		output.flush();
+		output.close();
+	}
+	
+	/**
+	 * We are passed a new TLE for this spacecarft.  We want to store it in the file if it is a TLE that we do not already have.
+	 * @param tle
+	 * @return
+	 * @throws IOException 
+	 */
+	public boolean addTLE(FoxTLE tle) throws IOException {
+		tleList.add(tle);
+		saveTleHistory();
+		return true;
+	}
+	
+	protected TLE getTLEbyDate(DateTime dateTime) throws PositionCalcException {
+		if (tleList == null) return null;
+		TLE t = tleList.getTleByDate(dateTime);
+		if (t==null) {
+			satPosErrorCode = DataRecord.NO_TLE;
+			throw new PositionCalcException(DataRecord.NO_TLE);
+		}
+		return t;
+	}
+	
+	
+	
+	/**
+	 * Calculate the position at a historical data/time
+	 * Typically we don't call this directly.  Instead we call with the reset/uptime and hope that the value is already cached
+	 * @param timeNow
+	 * @return
+	 * @throws PositionCalcException
+	 */
+	public SatPos calcSatellitePosition(DateTime timeNow) throws PositionCalcException {
+		final TLE tle = getTLEbyDate(timeNow);
+//		if (Config.debugFrames) Log.println("TLE Selected fOR date: " + timeNow + " used TLE epoch " + tle.getEpoch());
+		if (tle == null) {
+			satPosErrorCode = DataRecord.NO_TLE;
+			throw new PositionCalcException(DataRecord.NO_TLE); // We have no keps
+		}
+		final Satellite satellite = SatelliteFactory.createSatellite(tle);
+        final SatPos satellitePosition = satellite.getPosition(position, timeNow.toDate());
+		return satellitePosition;
+	}
+
+	/**
+	 * Calculate the current position and cache it
+	 * @return
+	 * @throws PositionCalcException
+	 */
+	protected SatPos calcualteCurrentPosition() throws PositionCalcException {
+		DateTime timeNow = new DateTime(DateTimeZone.UTC);
+		SatPos pos = null;
+		pos = calcSatellitePosition(timeNow);
+		satPos = pos;
 //		if (Config.debugSignalFinder)
-//			Log.println("Fox at: " + FramePart.latRadToDeg(pos.getAzimuth()) + " : " + FramePart.lonRadToDeg(pos.getElevation()));
-//		return pos;
-//	}
-//
-//	public SatPos getCurrentPosition() throws PositionCalcException {
-//		if (satPos == null) {
-//			throw new PositionCalcException(FramePart.NO_POSITION_DATA);
-//		}
-//		return satPos;
-//	}
-//	
-//	public boolean aboveHorizon() {
-//		if (satPos == null)
-//			return false;
-//		return (FramePart.radToDeg(satPos.getElevation()) >= 0);
-//	}
+//			Log.println("Fox at: " + Spacecraft.latRadToDeg(pos.getAzimuth()) + " : " + DataRecord.Spacecraft(pos.getElevation()));
+		return pos;
+	}
+
+	public SatPos getCurrentPosition() throws PositionCalcException {
+		if (satPos == null) {
+			throw new PositionCalcException(DataRecord.NO_POSITION_DATA);
+		}
+		return satPos;
+	}
+	
+	public boolean aboveHorizon() {
+		if (satPos == null)
+			return false;
+		return (Spacecraft.radToDeg(satPos.getElevation()) >= 0);
+	}
 	
 		
 	protected void load() throws LayoutLoadException, IOException {
@@ -521,23 +531,38 @@ public class Spacecraft implements Comparable<Spacecraft> {
 	}
 
 	
-//	public SatPos getSatellitePosition(int reset, long uptime) throws PositionCalcException {
-//		// We need to construct a date for the historical time of this WOD record
-//		DateTime timeNow = getUtcDateTimeForReset(reset, uptime);
-//		if (timeNow == null) return null;
-//		SatPos satellitePosition = positionCache.getPosition(timeNow.getMillis());
-//		if (satellitePosition != null) {
-//			return satellitePosition;
-//		}
-//		final TLE tle = getTLEbyDate(timeNow);
-////		if (Config.debugFrames) Log.println("TLE Selected fOR date: " + timeNow + " used TLE epoch " + tle.getEpoch());
-//		if (tle == null) throw new PositionCalcException(FramePart.NO_TLE); // We have no keps
-//		final Satellite satellite = SatelliteFactory.createSatellite(tle);
-//        satellitePosition = satellite.getPosition(Config.GROUND_STATION, timeNow.toDate());
-////        Log.println("Cache value");
-//        positionCache.storePosition(timeNow.getMillis(), satellitePosition);
-//		return satellitePosition;
-//	}
+	public SatPos getSatellitePosition(int reset, long uptime) throws PositionCalcException {
+		// We need to construct a date for the historical time of this WOD record
+		DateTime timeNow = getUtcDateTimeForReset(reset, uptime);
+		if (timeNow == null) return null;
+		SatPos satellitePosition = positionCache.getPosition(timeNow.getMillis());
+		if (satellitePosition != null) {
+			return satellitePosition;
+		}
+		final TLE tle = getTLEbyDate(timeNow);
+//		if (Config.debugFrames) Log.println("TLE Selected fOR date: " + timeNow + " used TLE epoch " + tle.getEpoch());
+		if (tle == null) throw new PositionCalcException(DataRecord.NO_TLE); // We have no keps
+		final Satellite satellite = SatelliteFactory.createSatellite(tle);
+        satellitePosition = satellite.getPosition(position, timeNow.toDate());
+//        Log.println("Cache value");
+        positionCache.storePosition(timeNow.getMillis(), satellitePosition);
+		return satellitePosition;
+	}
+
+	public static double radToDeg(Double rad) {
+		return 180 * (rad / Math.PI);
+	}
+	public static double latRadToDeg(Double rad) {
+		return radToDeg(rad);
+	}
+
+	public static double lonRadToDeg(Double rad) {
+		double lon = radToDeg(rad);
+		if (lon > 180)
+			return lon -360;
+		else
+			return lon;
+	}
 
 	
 }

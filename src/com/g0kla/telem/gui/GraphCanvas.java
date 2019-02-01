@@ -10,8 +10,10 @@ import java.text.DecimalFormat;
 import com.g0kla.telem.data.ByteArrayLayout;
 import com.g0kla.telem.data.DataLoadException;
 import com.g0kla.telem.data.DataRecord;
+import com.g0kla.telem.predict.PositionCalcException;
 import com.g0kla.telem.segDb.DataTable;
 import com.g0kla.telem.segDb.SatTelemStore;
+import com.g0kla.telem.segDb.Spacecraft;
 
 import uk.me.g4dpz.satellite.SatPos;
 
@@ -42,13 +44,16 @@ public abstract class GraphCanvas extends MapPanel {
 	Graphics g;
 	SatTelemStore db;
 	int satId;
+	Spacecraft sat;
 	ByteArrayLayout layout;
+	boolean getPostionData = false;
 
-	GraphCanvas(String title, int satId, ByteArrayLayout layout, GraphFrame gf, SatTelemStore db) {
+	GraphCanvas(String title, Spacecraft sat, ByteArrayLayout layout, GraphFrame gf, SatTelemStore db) {
 		this.title = title;
 		graphFrame = gf;
 		this.db = db;
-		this.satId = satId;
+		this.sat = sat;
+		satId = sat.satId;
 		this.layout = layout;
 	}
 
@@ -72,7 +77,7 @@ public abstract class GraphCanvas extends MapPanel {
 				reverse=true;
 				try {
 					graphData[i] = db.getGraphData(graphFrame.fieldName[i], graphFrame.SAMPLES, satId, graphFrame.START_RESET, 
-							graphFrame.START_UPTIME, layout.name, false, false, reverse);
+							graphFrame.START_UPTIME, layout.name, false, getPostionData, reverse);
 				} catch (NumberFormatException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -127,48 +132,48 @@ public abstract class GraphCanvas extends MapPanel {
 	 */
 	private double[][] addPositionData(double[][] coreGraphData) {
 		//Log.println("ADDING position data to graph");
-//		int showDialogThreshold = 9999;
-//		ProgressPanel fileProgress = null;
-//		if (graphFrame.SAMPLES > showDialogThreshold) {
-//			fileProgress = new ProgressPanel(graphFrame, "Calculating Spacecraft positions, please wait ...", false);
-//			fileProgress.setVisible(true);
-//		}
-//
-//		double[][] newGraphData = new double[DataTable.LON_COL+1][]; // make room for the lat/lon	
-//		newGraphData[DataTable.RESETS_COL] = coreGraphData[DataTable.RESETS_COL];
-//		newGraphData[DataTable.UPTIME_COL] = coreGraphData[DataTable.UPTIME_COL];
-//		newGraphData[DataTable.DATA_COL] = coreGraphData[DataTable.DATA_COL];
-//		newGraphData[DataTable.LAT_COL] = new double[coreGraphData[DataTable.RESETS_COL].length];
-//		newGraphData[DataTable.LON_COL] = new double[coreGraphData[DataTable.RESETS_COL].length];
-//		for (int i=0; i< coreGraphData[DataTable.RESETS_COL].length; i++) {
-//			// Calculate the position
-//			if (graphFrame.SAMPLES > showDialogThreshold)
-//				fileProgress.updateProgress((int)(100*i/coreGraphData[DataTable.RESETS_COL].length));
-//			SatPos pos = null;
-//			double satLatitude = DataRecord.NO_TLE;
-//			double satLongitude = DataRecord.NO_TLE;
-//			try {
-//				pos = fox.getSatellitePosition((int)newGraphData[DataTable.RESETS_COL][i], (long)newGraphData[DataTable.UPTIME_COL][i]);
-//				if (pos != null) {
-//					satLatitude = FramePart.latRadToDeg (pos.getLatitude());
-//					satLongitude = FramePart.lonRadToDeg(pos.getLongitude());
-//				}
-//				//Log.println("POS: " + (int)newGraphData[PayloadStore.RESETS_COL][i] + "," + (long)newGraphData[PayloadStore.UPTIME_COL][i] + " at "
-//				//						+ satLatitude + ", " + satLongitude) ;
-//			} catch (PositionCalcException e) {
-//				if (e.errorCode == FramePart.NO_TLE) {
-//					// we just store the default values for NO_TLE
-//				}
-//			}	
-//			newGraphData[PayloadStore.LAT_COL][i] = satLatitude;
-//			newGraphData[PayloadStore.LON_COL][i] = satLongitude;
-//
-//		}
-//		if (graphFrame.SAMPLES > showDialogThreshold)
-//			fileProgress.updateProgress(100);
-//
-//		return newGraphData;
-		return null;
+		int showDialogThreshold = 9999;
+		ProgressPanel fileProgress = null;
+		if (graphFrame.SAMPLES > showDialogThreshold) {
+			fileProgress = new ProgressPanel(graphFrame, "Calculating Spacecraft positions, please wait ...", false);
+			fileProgress.setVisible(true);
+		}
+
+		double[][] newGraphData = new double[DataTable.LON_COL+1][]; // make room for the lat/lon	
+		newGraphData[DataTable.RESETS_COL] = coreGraphData[DataTable.RESETS_COL];
+		newGraphData[DataTable.UPTIME_COL] = coreGraphData[DataTable.UPTIME_COL];
+		newGraphData[DataTable.DATA_COL] = coreGraphData[DataTable.DATA_COL];
+		newGraphData[DataTable.LAT_COL] = new double[coreGraphData[DataTable.RESETS_COL].length];
+		newGraphData[DataTable.LON_COL] = new double[coreGraphData[DataTable.RESETS_COL].length];
+		for (int i=0; i< coreGraphData[DataTable.RESETS_COL].length; i++) {
+			// Calculate the position
+			if (graphFrame.SAMPLES > showDialogThreshold)
+				fileProgress.updateProgress((int)(100*i/coreGraphData[DataTable.RESETS_COL].length));
+			SatPos pos = null;
+			double satLatitude = DataRecord.NO_TLE;
+			double satLongitude = DataRecord.NO_TLE;
+			try {
+				pos = sat.getSatellitePosition((int)newGraphData[DataTable.RESETS_COL][i], (long)newGraphData[DataTable.UPTIME_COL][i]);
+				if (pos != null) {
+					satLatitude = Spacecraft.latRadToDeg (pos.getLatitude());
+					satLongitude = Spacecraft.lonRadToDeg(pos.getLongitude());
+				}
+				//Log.println("POS: " + (int)newGraphData[PayloadStore.RESETS_COL][i] + "," + (long)newGraphData[PayloadStore.UPTIME_COL][i] + " at "
+				//						+ satLatitude + ", " + satLongitude) ;
+			} catch (PositionCalcException e) {
+				if (e.errorCode == DataRecord.NO_TLE) {
+					// we just store the default values for NO_TLE
+				}
+			}	
+			newGraphData[DataTable.LAT_COL][i] = satLatitude;
+			newGraphData[DataTable.LON_COL][i] = satLongitude;
+
+		}
+		if (graphFrame.SAMPLES > showDialogThreshold)
+			fileProgress.updateProgress(100);
+
+		return newGraphData;
+//		return null;
 	}
 
 	public boolean checkDataExists() {
