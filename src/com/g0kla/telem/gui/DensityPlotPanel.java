@@ -5,9 +5,10 @@ import java.awt.Font;
 import java.awt.Graphics;
 import java.text.DecimalFormat;
 
-import common.Config;
-import common.FoxSpacecraft;
-import telemetry.PayloadStore;
+import com.g0kla.telem.data.ByteArrayLayout;
+import com.g0kla.telem.segDb.DataTable;
+import com.g0kla.telem.segDb.SatTelemStore;
+import com.g0kla.telem.segDb.Spacecraft;
 
 /**
  * We use many of the core graph classes to draw a density plot. The first example will be a plot of signal strength vs
@@ -20,8 +21,8 @@ import telemetry.PayloadStore;
 public class DensityPlotPanel extends GraphCanvas {
 	int[][] timePeriod = null; // The time period for the graph reset count and uptime
 
-	DensityPlotPanel(String t, int conversionType, int plType, GraphFrame gf, FoxSpacecraft sat) {
-		super(t, conversionType, plType, gf, sat);
+	DensityPlotPanel(String t, Spacecraft sat, ByteArrayLayout layout, GraphFrame gf, SatTelemStore db) {
+		super(t, sat, layout, gf, db);
 		updateGraphData("DensityPlotPanel.new");
 	}
 	private void drawLegend(int graphHeight, int graphWidth, double minValue, double maxValue, String units) {
@@ -30,7 +31,7 @@ public class DensityPlotPanel extends GraphCanvas {
 		int leftOffset = 15;
 		int legendHeight = graphHeight-verticalOffset*2;
 
-		int font = (int)(9 * Config.graphAxisFontSize / 11 );
+		int font = (int)(9 * graphAxisFontSize / 11 );
 		int fonth = (int)(12*font/9);
 
 		int legendWidth = font*4;
@@ -42,7 +43,7 @@ public class DensityPlotPanel extends GraphCanvas {
 			int boxHeight = (int)legendHeight/rows;
 			legendHeight = boxHeight*rows;
 
-			g.setFont(new Font("SansSerif", Font.PLAIN, Config.graphAxisFontSize));
+			g.setFont(new Font("SansSerif", Font.PLAIN, graphAxisFontSize));
 			g2.drawString("Key", sideBorder + graphWidth + leftOffset + 5, verticalOffset - fonth*2  );
 			g2.drawString("("+units+")", sideBorder + graphWidth + leftOffset + 5, verticalOffset - fonth  );
 
@@ -70,7 +71,7 @@ public class DensityPlotPanel extends GraphCanvas {
 		int graphHeight = getHeight() - topBorder - bottomBorder;
 		int graphWidth = getWidth() - sideBorder*2; // width of entire graph
 		
-		g.setFont(new Font("SansSerif", Font.PLAIN, Config.graphAxisFontSize));
+		g.setFont(new Font("SansSerif", Font.PLAIN, graphAxisFontSize));
 		
 
 		// Create the Data Grid and the Horizontal Axis and a new version of graphData that will hold the data for the axis themselves, so the
@@ -94,16 +95,16 @@ public class DensityPlotPanel extends GraphCanvas {
 		// we have three sets of data:
 		// In graphData2 EL is in variable 0, AZ in variable 1 and the value is in variable 0 of graphData
 		// We do not care about resets and uptime, we just running average the data into the grid
-		for (int i=1; i < graphData[0][PayloadStore.DATA_COL].length; i++) {
-			double vert = graphData2[0][PayloadStore.DATA_COL][i];
+		for (int i=1; i < graphData[0][DataTable.DATA_COL].length; i++) {
+			double vert = graphData2[0][DataTable.DATA_COL][i];
 			if (vert > 0) noAzElReadings = false;
-			double hor = graphData2[1][PayloadStore.DATA_COL][i];
+			double hor = graphData2[1][DataTable.DATA_COL][i];
 			if (hor > 0) noAzElReadings = false;
-			double value = graphData[0][PayloadStore.DATA_COL][i];
+			double value = graphData[0][DataTable.DATA_COL][i];
 			if (Double.isNaN(value)) value = 0;
 			
 			// integrity check
-			if (graphData[0][PayloadStore.UPTIME_COL][i] != graphData2[1][PayloadStore.UPTIME_COL][i])
+			if (graphData[0][DataTable.UPTIME_COL][i] != graphData2[1][DataTable.UPTIME_COL][i])
 				System.err.println("ERROR!!!!!!!!!");
 			
 			if (hor > maxHor) hor = hor % maxHor;  // if greater than 360 we start again at 0
@@ -138,7 +139,7 @@ public class DensityPlotPanel extends GraphCanvas {
 
 		drawLegend(graphHeight, graphWidth, minValue, maxValue, graphFrame.fieldUnits);
 		
-		g.setFont(new Font("SansSerif", Font.PLAIN, Config.graphAxisFontSize));
+		g.setFont(new Font("SansSerif", Font.PLAIN, graphAxisFontSize));
 		// Draw vertical axis - always in the same place
 		g2.setColor(graphAxisColor);
 		g2.drawLine(sideBorder, getHeight()-bottomBorder, sideBorder, topBorder);
@@ -146,7 +147,7 @@ public class DensityPlotPanel extends GraphCanvas {
 		double[] labels = calcAxisInterval(0, maxVert, numberOfLabels, false);
 		numberOfLabels = labels.length;
 		g2.setColor(graphTextColor);
-		g2.drawString("Elevation", sideLabelOffset, topBorder -(int)(Config.graphAxisFontSize/2)); 
+		g2.drawString("Elevation", sideLabelOffset, topBorder -(int)(graphAxisFontSize/2)); 
 		
 		DecimalFormat f2 = new DecimalFormat("0");
 		for (int v=1; v < numberOfLabels; v++) {
@@ -155,32 +156,32 @@ public class DensityPlotPanel extends GraphCanvas {
 			pos = graphHeight-pos;
 			String s = f2.format(labels[v]);
 
-			g2.drawString(s, sideLabelOffset, pos+topBorder+(int)(Config.graphAxisFontSize/2)); 
+			g2.drawString(s, sideLabelOffset, pos+topBorder+(int)(graphAxisFontSize/2)); 
 		}
 		g2.setColor(graphAxisColor);
 		int zeroPoint = graphHeight + topBorder;
-		g.setFont(new Font("SansSerif", Font.PLAIN, Config.graphAxisFontSize));
+		g.setFont(new Font("SansSerif", Font.PLAIN, graphAxisFontSize));
 
-		int titleHeight = Config.graphAxisFontSize+10;
-		if (zeroPoint < Config.graphAxisFontSize*3) {
+		int titleHeight = graphAxisFontSize+10;
+		if (zeroPoint < graphAxisFontSize*3) {
 			// we need the title at bottom of graph, not top
 			titleHeight = graphHeight + topBorder;
 		}
 
 		// Draw the title
 		g2.setColor(Color.BLACK);
-		g.setFont(new Font("SansSerif", Font.BOLD, Config.graphAxisFontSize+3));
+		g.setFont(new Font("SansSerif", Font.BOLD, graphAxisFontSize+3));
 		String title = graphFrame.displayTitle + " vs Az El";
-		g2.drawString(title, sideBorder/2 + graphWidth/2 - graphFrame.displayTitle.length()/2 * Config.graphAxisFontSize/2, titleHeight-Config.graphAxisFontSize/2);
+		g2.drawString(title, sideBorder/2 + graphWidth/2 - graphFrame.displayTitle.length()/2 * graphAxisFontSize/2, titleHeight-graphAxisFontSize/2);
 
-		g.setFont(new Font("SansSerif", Font.PLAIN, Config.graphAxisFontSize));
+		g.setFont(new Font("SansSerif", Font.PLAIN, graphAxisFontSize));
 		
 		// Draw baseline at the zero point
 		g2.setColor(graphAxisColor);
 		g2.drawLine(sideLabelOffset, zeroPoint, graphWidth+sideBorder, zeroPoint);
 		g2.setColor(graphTextColor);
 		int offset = 0;
-		g2.drawString("Azimuth", sideLabelOffset, zeroPoint+1*Config.graphAxisFontSize + offset );
+		g2.drawString("Azimuth", sideLabelOffset, zeroPoint+1*graphAxisFontSize + offset );
 
 		// Plot the labels for the horizontal axis
 		int numberOfTimeLabels = graphWidth/(labelWidth/2);
@@ -190,7 +191,7 @@ public class DensityPlotPanel extends GraphCanvas {
 		for (int h=0; h < numberOfTimeLabels; h++) {
 			int timepos = getRatioPosition(0, maxHor, timelabels[h], graphWidth);
 			g2.setColor(graphTextColor);
-			g2.drawString(""+(long)timelabels[h], timepos+sideBorder+2, zeroPoint+1*Config.graphAxisFontSize + offset);
+			g2.drawString(""+(long)timelabels[h], timepos+sideBorder+2, zeroPoint+1*graphAxisFontSize + offset);
 		}
 		
 		if (noAzElReadings) {
