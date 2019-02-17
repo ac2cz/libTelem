@@ -5,6 +5,9 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -15,11 +18,10 @@ import java.util.StringTokenizer;
 import java.util.TimeZone;
 
 /**
- * FOX 1 Telemetry Decoder
  * 
  * @author chris.e.thompson g0kla/ac2cz
  *
- *         Copyright (C) 2015 amsat.org
+ *         Copyright (C) 2019 amsat.org
  *
  *         This program is free software: you can redistribute it and/or modify
  *         it under the terms of the GNU General Public License as published by
@@ -46,7 +48,12 @@ public class STP implements Comparable<STP> {
 	
 	public static final String NONE = "NONE";
 
-	public int satId;
+	// Identification
+	public int id; // Used to seperate records if more than one spacecraft in the same database
+	public int resets; // Used as part of the timebase if needed or set to 0
+	public long uptime; // uptime of the spacecraft since the resets
+	public int type; // identifier if multiple types of data records, especially if they have the same layout
+
 	public String receiver = NONE; // unique name (usually callsign) chosen by
 	// the user. May vary over life of program
 	// usage, so stored
@@ -81,7 +88,7 @@ public class STP implements Comparable<STP> {
 	 */
 	public STP(int id, String callsign, String latitude, String longitude, String altitude, String stationDetails, 
 			String software, String recordSource, long sequenceNum, STPable record) {
-		satId = id;
+		this.id = id;
 		receiver = callsign;
 		// frequency = "";
 		rx_location = formatLatitude(latitude) + " "
@@ -112,7 +119,7 @@ public class STP implements Comparable<STP> {
 	 */
 	public STP(int id, Date stpDate, String callsign, String location, String stationDetails, 
 			String software, String recordSource, long sequenceNum, int[] data) {
-		satId = id;
+		this.id = id;
 		receiver = callsign;
 		// frequency = "";
 		rx_location = location;
@@ -257,7 +264,7 @@ public class STP implements Comparable<STP> {
 	}
 
 	public void save(BufferedWriter output) throws IOException {
-		output.write(Long.toString(sequenceNumber) + "," + satId + ","
+		output.write(Long.toString(sequenceNumber) + "," + id + ","
 				+ escapeComma(source) + "," + escapeComma(receiver) + ","
 				+ escapeComma(frequency) + "," + escapeComma(rx_location) + ","
 				+ escapeComma(receiver_rf) + "," + escapeComma(demodulator)
@@ -410,7 +417,7 @@ public class STP implements Comparable<STP> {
 
 	public static String getTableCreateStmt() {
 		String s = new String();
-		s = s + "(stpDate varchar(35), id int, resets int, uptime bigint, type int, "
+		s = s + "(stpDate varchar(35), id int, "
 		 + "sequenceNumber bigint, "
 		 + "length int, "
 		 + "source varchar(35)," 
@@ -422,62 +429,59 @@ public class STP implements Comparable<STP> {
 		+ "measuredTCA varchar(35),"
 		+ "measuredTCAfrequency varchar(35),"
 		+ "date_time timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,";
-		s = s + "PRIMARY KEY (id, resets, uptime, type, receiver))";
+		s = s + "PRIMARY KEY (stpDate, id, receiver))";
 		return s;
 	}
 	
-//	public PreparedStatement getPreparedInsertStmt(Connection con) throws SQLException {
-//				
-//		//java.sql.Date sqlDate = new java.sql.Date(stpDate.getTime());
-//		//FIXME - need to make this a proper date in the DB
-//		String dt = "";
-//		if (stpDate != null)
-//			dt = stpDateFormat.format(stpDate);
-//		String s = new String();
-//		if (demodulator.length() > 99) demodulator = demodulator.substring(0, 99);
-//		if (source.length() > 32) source = source.substring(0, 32);
-//		if (receiver.length() > 32) receiver = receiver.substring(0, 32);
-//		if (frequency.length() > 32) frequency = frequency.substring(0, 32);
-//		if (rx_location.length() > 32) rx_location = rx_location.substring(0, 32);
-//		if (receiver_rf.length() > 50) receiver_rf = receiver_rf.substring(0, 50);
-//		if (measuredTCA.length() > 32) measuredTCA = measuredTCA.substring(0, 32);
-//		if (measuredTCAfrequency.length() > 32) measuredTCAfrequency = measuredTCAfrequency.substring(0, 32);
-//		s = s + "insert into STP_HEADER (stpDate,  id, resets, uptime, type, \n";
-//		s = s + "sequenceNumber,\n";
-//		s = s + "length,\n";
-//		s = s + "source,\n";
-//		s = s + "receiver,\n";
-//		s = s + "frequency,\n";
-//		s = s + "rx_location,\n";
-//		s = s + "receiver_rf,\n";
-//		s = s + "demodulator,\n";
-//		s = s + "measuredTCA,\n";
-//		s = s + "measuredTCAfrequency)\n";
-//
-//		s = s + "values (?, ?, ?, ?, ?,"
-//				+ "?,?,?,?,?,?,?,?,?,?)";
-//
-//		java.sql.PreparedStatement ps = con.prepareStatement(s);
-//		
-//		ps.setString(1, dt);
-//		ps.setInt(2, foxId);
-//		ps.setInt(3, header.resets);
-//		ps.setLong(4, header.uptime);
-//		ps.setInt(5, header.type);
-//		ps.setLong(6, sequenceNumber);
-//		ps.setString(7, length);
-//		ps.setString(8, source);
-//		ps.setString(9, receiver);
-//		ps.setString(10, frequency);
-//		ps.setString(11, rx_location);
-//		ps.setString(12, receiver_rf);
-//		ps.setString(13, demodulator);
-//		ps.setString(14, measuredTCA);
-//		ps.setString(15, measuredTCAfrequency);
-//
-//		return ps;
-//		
-//	}
+	public PreparedStatement getPreparedInsertStmt(Connection con) throws SQLException {
+				
+		//java.sql.Date sqlDate = new java.sql.Date(stpDate.getTime());
+		//FIXME - need to make this a proper date in the DB
+		String dt = "";
+		if (stpDate != null)
+			dt = stpDateFormat.format(stpDate);
+		String s = new String();
+		if (demodulator.length() > 99) demodulator = demodulator.substring(0, 99);
+		if (source.length() > 32) source = source.substring(0, 32);
+		if (receiver.length() > 32) receiver = receiver.substring(0, 32);
+		if (frequency.length() > 32) frequency = frequency.substring(0, 32);
+		if (rx_location.length() > 32) rx_location = rx_location.substring(0, 32);
+		if (receiver_rf.length() > 50) receiver_rf = receiver_rf.substring(0, 50);
+		if (measuredTCA.length() > 32) measuredTCA = measuredTCA.substring(0, 32);
+		if (measuredTCAfrequency.length() > 32) measuredTCAfrequency = measuredTCAfrequency.substring(0, 32);
+		s = s + "insert into STP_HEADER (stpDate,  id, \n";
+		s = s + "sequenceNumber,\n";
+		s = s + "length,\n";
+		s = s + "source,\n";
+		s = s + "receiver,\n";
+		s = s + "frequency,\n";
+		s = s + "rx_location,\n";
+		s = s + "receiver_rf,\n";
+		s = s + "demodulator,\n";
+		s = s + "measuredTCA,\n";
+		s = s + "measuredTCAfrequency)\n";
+
+		s = s + "values (?, ?,"
+				+ "?,?,?,?,?,?,?,?,?,?)";
+
+		java.sql.PreparedStatement ps = con.prepareStatement(s);
+		
+		ps.setString(1, dt);
+		ps.setInt(2, this.id);
+		ps.setLong(3, sequenceNumber);
+		ps.setString(4, length);
+		ps.setString(5, source);
+		ps.setString(6, receiver);
+		ps.setString(7, frequency);
+		ps.setString(8, rx_location);
+		ps.setString(9, receiver_rf);
+		ps.setString(10, demodulator);
+		ps.setString(11, measuredTCA);
+		ps.setString(12, measuredTCAfrequency);
+
+		return ps;
+		
+	}
 	
 	public void load(BufferedReader input) throws IOException {
 		
@@ -485,7 +489,7 @@ public class STP implements Comparable<STP> {
 		if (line != null) {
 			StringTokenizer st = new StringTokenizer(line, ",");
 			sequenceNumber = Long.parseLong(st.nextToken());
-			satId = Integer.parseInt(st.nextToken());
+			id = Integer.parseInt(st.nextToken());
 			source = insertComma(st.nextToken());
 			receiver = insertComma(st.nextToken());
 			frequency = insertComma(st.nextToken());
