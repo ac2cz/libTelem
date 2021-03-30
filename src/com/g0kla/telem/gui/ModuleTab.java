@@ -3,6 +3,7 @@ package com.g0kla.telem.gui;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -160,13 +161,15 @@ public abstract class ModuleTab extends JPanel implements Runnable, FocusListene
 	protected JTable table;
 	protected ByteArrayLayout layout;
 	Spacecraft sat; 
-	SatTelemStore db;
+	protected SatTelemStore db;
 	
 	public ModuleTab(ByteArrayLayout layout, Spacecraft sat, SatTelemStore db) {
 		this.sat = sat;
 		this.db = db;
 		this.layout = layout;
 		setLayout(new BorderLayout(0, 0));
+		JLabel l = new JLabel();
+		this.displayModuleFontSize = (int) (l.getFont().getSize()*0.8);
 
 		centerPanel = new JPanel();
 		add(centerPanel, BorderLayout.CENTER);

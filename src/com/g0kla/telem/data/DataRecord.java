@@ -94,6 +94,12 @@ public class DataRecord implements Comparable<DataRecord> {
 		return value;
 	}
 
+	public static int getByteValue(int offset, int[] data) {
+		int value = data[offset];
+		return value;
+	}
+
+	
 	@Override
 	public int compareTo(DataRecord p) {
 		if (resets == p.resets && uptime == p.uptime && type == p.type) 
