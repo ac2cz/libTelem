@@ -169,7 +169,7 @@ public abstract class ModuleTab extends JPanel implements Runnable, FocusListene
 		this.layout = layout;
 		setLayout(new BorderLayout(0, 0));
 		JLabel l = new JLabel();
-		this.displayModuleFontSize = (int) (l.getFont().getSize()*0.8);
+		this.displayModuleFontSize = (int) (l.getFont().getSize());
 
 		centerPanel = new JPanel();
 		add(centerPanel, BorderLayout.CENTER);

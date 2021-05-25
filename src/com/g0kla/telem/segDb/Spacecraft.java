@@ -18,7 +18,9 @@ import java.util.TimeZone;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
+import com.g0kla.telem.data.BitArrayLayout;
 import com.g0kla.telem.data.ByteArrayLayout;
+import com.g0kla.telem.data.ConversionTable;
 import com.g0kla.telem.data.DataRecord;
 import com.g0kla.telem.data.EpochTime;
 import com.g0kla.telem.data.LayoutLoadException;
@@ -70,6 +72,7 @@ public class Spacecraft implements Comparable<Spacecraft> {
 	public int telemetryDownlinkFreqkHz = 145980;
 	public int minFreqBoundkHz = 145970;
 	public int maxFreqBoundkHz = 145990;
+	public boolean layoutsUseBits = false;
 	
 	public boolean telemetryMSBfirst = true;
 	public boolean ihuLittleEndian = true;
@@ -100,6 +103,8 @@ public class Spacecraft implements Comparable<Spacecraft> {
 	public double satPosErrorCode; // Store the error code when we return null for the position
 	
 	private SortedTleList tleList; // this is a list of TLEs loaded from the history file.  We search this for historical TLEs
+	
+	public String conversionCoefficientsFileName;
 	
 	/*
 	final String[] testTLE = {
@@ -293,15 +298,31 @@ public class Spacecraft implements Comparable<Spacecraft> {
 			name = getProperty("name");
 			description = getProperty("description");
 			model = Integer.parseInt(getProperty("model"));
+			
+			String b = getOptionalProperty("layoutsUseBits");
+			if (b == null) 
+				layoutsUseBits = false;
+			else 
+				layoutsUseBits = Boolean.parseBoolean(b);
 
+			// Conversions
+			conversionCoefficientsFileName = getProperty("conversionCoefficients");
+			
+			
 			// Telemetry Layouts
 			numberOfLayouts = Integer.parseInt(getProperty("numberOfLayouts"));
 			layoutFilename = new String[numberOfLayouts];
-			layout = new ByteArrayLayout[numberOfLayouts];
+			if (layoutsUseBits)
+				layout = new BitArrayLayout[numberOfLayouts];
+			else
+				layout = new ByteArrayLayout[numberOfLayouts];
 			for (int i=0; i < numberOfLayouts; i++) {
 				layoutFilename[i] = dirName + File.separator + getProperty("layout"+i+".filename");
 				String name = getProperty("layout"+i+".name");
-				layout[i] = new ByteArrayLayout(name, layoutFilename[i]);
+				if (layoutsUseBits)
+					layout[i] = new BitArrayLayout(name, layoutFilename[i]);
+				else
+					layout[i] = new ByteArrayLayout(name, layoutFilename[i]);
 				layout[i].name = name;
 				layout[i].parentLayout = getOptionalProperty("layout"+i+".parentLayout");
 			}

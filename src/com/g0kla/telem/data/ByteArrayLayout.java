@@ -49,7 +49,7 @@ public class ByteArrayLayout {
 	public String[] type = null;  // the type of the data long, int, byte
 	public int[] conversion = null; // the conversion routine to change raw bits into a real value
 	public String[] fieldUnits = null; // the units as they would be displayed on a graph e.g. C for Celcius
-	public int[] fieldByteLength = null; // the number of bytes in this field
+	public int[] fieldLength = null; // the number of bytes in this field
 	public String[] module = null; // the module on the display screen that this would be shown in e.g. Radio
 	public int[] moduleNum = null; // the order that the module is displayed on the screen with 1-9 in the top and 10-19 in the bottom
 	public int[] moduleLinePosition = null; // the line position in the module, starting from 1
@@ -58,7 +58,7 @@ public class ByteArrayLayout {
 	public String[] shortName = null;
 	public String[] description = null;
 	
-	private int numberOfBytes = 0;
+	protected int numberOfBytes = 0;
 
 	public static final int CONVERT_NONE = 0;
 	
@@ -184,7 +184,7 @@ public class ByteArrayLayout {
 		fieldName = new String[NUMBER_OF_FIELDS];		
 		type = new String[NUMBER_OF_FIELDS];		
 		conversion = new int[NUMBER_OF_FIELDS];
-		fieldByteLength = new int[NUMBER_OF_FIELDS];
+		fieldLength = new int[NUMBER_OF_FIELDS];
 		fieldUnits = new String[NUMBER_OF_FIELDS];
 		module = new String[NUMBER_OF_FIELDS];
 		moduleLinePosition = new int[NUMBER_OF_FIELDS];
@@ -201,7 +201,7 @@ public class ByteArrayLayout {
 				int fieldId = Integer.valueOf(st.nextToken()).intValue();
 				type[field] = st.nextToken();
 				fieldName[field] = st.nextToken();
-				fieldByteLength[field] = Integer.valueOf(st.nextToken()).intValue();
+				fieldLength[field] = Integer.valueOf(st.nextToken()).intValue();
 				fieldUnits[field] = st.nextToken();
 				conversion[field] = Integer.valueOf(st.nextToken()).intValue();
 				module[field] = st.nextToken();					
@@ -221,10 +221,10 @@ public class ByteArrayLayout {
 
 		if (NUMBER_OF_FIELDS != field) throw new LayoutLoadException("Error loading fields from " + fileName +
 				". Expected " + NUMBER_OF_FIELDS + " fields , but loaded " + field);
-		if (fieldByteLength != null) {
+		if (fieldLength != null) {
 			numberOfBytes = 0;
-			for (int i=0; i < fieldByteLength.length; i++) {
-				numberOfBytes += fieldByteLength[i];
+			for (int i=0; i < fieldLength.length; i++) {
+				numberOfBytes += fieldLength[i];
 			}
 		}
 	}

@@ -36,6 +36,10 @@ public class DataRecord implements Comparable<DataRecord> {
 		this.layout = layout;
 		fieldValue = new int[layout.fieldName.length];
 		
+		parseData(data);
+	}
+	
+	public void parseData(int[] data) {
 		int i = 0;
 		for (int k=0; k < layout.fieldName.length && i < data.length; k++) {
 			if (layout.type[k].equalsIgnoreCase("LONG")) { // 32 bit
@@ -48,7 +52,7 @@ public class DataRecord implements Comparable<DataRecord> {
 				fieldValue[k] =  data[i];
 			}
 			//System.out.println(layout.fieldName[k] + ": " + fieldValue[k]);
-			i = i + layout.fieldByteLength[k];
+			i = i + layout.fieldLength[k];
 		}
 	}
 	
@@ -209,13 +213,14 @@ public class DataRecord implements Comparable<DataRecord> {
 		ConversionTable ct = layout.getConversionTable(); 
 		for (int i=0; i < layout.fieldName.length-1; i++) {
 			if (ct != null)
-				s = s + ct.getStringValue(layout.conversion[i], fieldValue[i]) + ", ";
+				s = s + layout.fieldName[i] + ":" + ct.getStringValue(layout.conversion[i], fieldValue[i]) + ", ";
 			else
-				s = s + fieldValue[i] + ", ";
-		}if (ct != null)
-			s = s + ct.getStringValue(layout.conversion[layout.fieldName.length-1], fieldValue[layout.fieldName.length-1]);
+				s = s + layout.fieldName[i] + ":" + fieldValue[i] + ", ";
+		}
+		if (ct != null)
+			s = s + layout.fieldName[layout.fieldName.length-1] + ":" + ct.getStringValue(layout.conversion[layout.fieldName.length-1], fieldValue[layout.fieldName.length-1]);
 		else
-			s = s + fieldValue[layout.fieldName.length-1];
+			s = s + layout.fieldName[layout.fieldName.length-1] + ":" + fieldValue[layout.fieldName.length-1];
 		return s;
 	}
 }

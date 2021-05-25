@@ -43,6 +43,9 @@ public class ConversionTable {
 		String s = "";
 		if (units[conversion].equalsIgnoreCase("Counts")) {
 			s = Integer.toString((int) val);
+		} else if (units[conversion].equalsIgnoreCase("Boolean")) {
+			if (val > 0) s = "True";
+			else s = "False";
 		} else {
 			s = String.format("%1.2f", val);
 		}
