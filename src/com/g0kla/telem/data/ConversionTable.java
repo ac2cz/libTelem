@@ -3,14 +3,21 @@ package com.g0kla.telem.data;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.Locale;
 import java.util.NoSuchElementException;
 import java.util.StringTokenizer;
+import java.util.TimeZone;
 
 public class ConversionTable {
 	String fileName;
 	
 	int NUMBER_OF_FIELDS = 0;
+	public static final DateFormat dateFormatSecs = new SimpleDateFormat(
+			"dd MMM yy HH:mm:ss", Locale.ENGLISH);
 	
 	public String[] fieldName = null;  // name of the field that the bits correspond to
 	public String[] fieldName2 = null;  // name of the field that the bits correspond to
@@ -27,6 +34,10 @@ public class ConversionTable {
 	public String[] description = null;  // name of the field that the bits correspond to
 
 	public static final String TERMINATOR = "NOTES:"; // File is done when we detect this in the first row
+	
+	static {
+		dateFormatSecs.setTimeZone(TimeZone.getTimeZone("UTC"));
+	}
 	
 	public ConversionTable(String fileName) throws LayoutLoadException, IOException {
 		this.fileName = fileName;
@@ -46,6 +57,16 @@ public class ConversionTable {
 		} else if (units[conversion].equalsIgnoreCase("Boolean")) {
 			if (val > 0) s = "True";
 			else s = "False";
+		} else if (units[conversion].equalsIgnoreCase("Time")) {
+			int h = (int) (val / (60*60*1000));
+			val = val - (h*60*60*1000);
+			int m = (int) (val / (60*1000));
+			int sec = (int) val - m * 60*1000;
+			sec = sec / 1000;
+			s = String.format("%02d:%02d:%02d", h,m,sec);
+		} else if (units[conversion].equalsIgnoreCase("Date")) {
+			Date dt = new Date((long) val*1000);
+			s = dateFormatSecs.format(dt);
 		} else {
 			s = String.format("%1.2f", val);
 		}

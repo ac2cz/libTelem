@@ -206,6 +206,10 @@ public class DisplayModule extends JPanel implements ActionListener, MouseListen
 		initGui();
 		
 	}
+	
+	public void setDisplayRawValues(boolean b) { displayRawValues = b; }
+	
+	
 	public void addName(int i, String name, String fieldName, int display) {
 		String desc = null;
 		this.addName(i, name, fieldName, desc, display);
