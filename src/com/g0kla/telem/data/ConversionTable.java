@@ -67,10 +67,81 @@ public class ConversionTable {
 		} else if (units[conversion].equalsIgnoreCase("Date")) {
 			Date dt = new Date((long) val*1000);
 			s = dateFormatSecs.format(dt);
+		} else if (units[conversion].equalsIgnoreCase("Raw8")) {
+			s = toByteString(rawValue,8);
+		} else if (units[conversion].equalsIgnoreCase("Raw10")) {
+			s = toByteString(rawValue,10);
+		} else if (units[conversion].equalsIgnoreCase("Bit2")) {
+			s = intToBin((int)val,2);
+		} else if (units[conversion].equalsIgnoreCase("Bit3")) {
+			s = intToBin((int)val,3);
+		} else if (units[conversion].equalsIgnoreCase("Bit4")) {
+			s = intToBin((int)val,4);
+		} else if (units[conversion].equalsIgnoreCase("Bit8")) {
+			s = intToBin((int)val,8);
+		} else if (units[conversion].equalsIgnoreCase("Bit16")) {
+			s = intToBin((int)val,16);
+		} else if (units[conversion].equalsIgnoreCase("Sint8")) {
+			// Signed Magnitude with msb as the sign
+			long bitMask = 0x80;
+			long valueMask = 0x7F;
+			long sval = rawValue & valueMask;
+			long sign = rawValue & bitMask;
+			if (sign == bitMask)
+				sval = sval * -1;
+			val = convertRawValue(conversion, sval);
+			s = String.format("%1.2f", val);				
+		} else if (units[conversion].equalsIgnoreCase("Sint16")) {
+			// Signed Magnitude with msb as the sign
+			long bitMask = 0x8000;
+			long valueMask = 0x7FFF;
+			long sval = rawValue & valueMask;
+			long sign = rawValue & bitMask;
+			if (sign == bitMask)
+				sval = sval * -1;
+			val = convertRawValue(conversion, sval);
+			s = String.format("%1.2f", val);
+		} else if (units[conversion].equalsIgnoreCase("MirADCSMode")) {
+			String[] mode = {"standby","detumble","coarse-point","fine-point"};
+			if (rawValue < mode.length)
+				s = mode[(int) rawValue];
+			else 
+				s = ""+rawValue;
+		} else if (units[conversion].equalsIgnoreCase("MirADCSState")) {
+			String[] mode = {"nadir","sun","velocity","LLA","moon"};
+			if (rawValue < mode.length)
+				s = mode[(int) rawValue];
+			else 
+				s = ""+rawValue;
 		} else {
 			s = String.format("%1.2f", val);
 		}
 		return s;
+	}
+	
+	public String intToBin(int word, int len) {
+		boolean b[] = new boolean[len];
+		for (int i=0; i<len; i++) {
+			if (((word >>i) & 0x01) == 1) b[len-1-i] = true; else b[len-1-i] = false; 
+		}
+		String s = "";
+		for (boolean bit : b)
+			if (bit) s=s+"1"; else s=s+"0";
+		return s;
+	}
+	
+	public static String toByteString(long value, int len) {
+		String s = "";
+		for (int i=0; i<len; i++) {
+			s = plainhex(value & 0xff) + s; // we get the least sig byte each time, so new bytes go on the front
+			value = value >> 8 ;
+		}
+		return s;
+	}
+	
+	public static String plainhex(long l) {
+		return String.format("%2s", Long.toHexString(l)).replace(' ', '0');
+		//return String.valueOf(n);
 	}
 
 	public double convertRawValue(int conversion, long rawValue) {
@@ -152,9 +223,14 @@ public class ConversionTable {
 	}
 	
 	public static void main(String[] args) throws LayoutLoadException, IOException {
-		ConversionTable ct = new ConversionTable("C:\\Users\\chris\\Google Drive\\AMSAT\\FalconSat-3\\telem\\Fs3coef.csv");
-		double val = ct.convertRawValue(3, 1353);
+		long v = 555555555555L;
+		String s = toByteString(v,5);
+		System.out.println(s);
+		
+	//	ConversionTable ct = new ConversionTable("C:\\Users\\chris\\Google Drive\\AMSAT\\FalconSat-3\\telem\\Fs3coef.csv");
+		ConversionTable ct = new ConversionTable("C:\\Users\\chris\\Desktop\\workspace\\Falcon\\spacecraft\\mir-sat-1-coef.csv");
+		double val = ct.convertRawValue(70, -32767);
 		System.out.println(val);
-		System.out.println(ct.getStringValue(3, 1353));
+		System.out.println(ct.getStringValue(123, 2));
 	}
 }

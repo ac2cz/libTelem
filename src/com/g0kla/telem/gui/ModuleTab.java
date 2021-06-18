@@ -37,6 +37,7 @@ import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.KeyStroke;
 import javax.swing.border.BevelBorder;
+import javax.swing.border.EmptyBorder;
 import javax.swing.border.SoftBevelBorder;
 import javax.swing.plaf.SplitPaneUI;
 import javax.swing.plaf.basic.BasicSplitPaneUI;
@@ -79,7 +80,7 @@ public abstract class ModuleTab extends JPanel implements Runnable, FocusListene
 	
 	Color textLblColor = Color.BLACK;
 	Color textColor = Color.DARK_GRAY;
-	
+	protected static final String CAPTURE_DATE = " |  Captured: ";
 	public static final int SHOW_LIVE = 0;
 	public static final int SHOW_RANGE = 2;
 	public static final int SHOW_NEXT = 1;
@@ -124,6 +125,9 @@ public abstract class ModuleTab extends JPanel implements Runnable, FocusListene
 
 	JLabel lblFromUTC;
 	JLabel lblToUTC;
+	
+	JLabel lblCaptureDate;
+	JLabel lblCaptureDateValue;
 	
 	public static final String FROM_RESET = "From Epoch";
 	public static final String BEFORE_RESET = " before Epoch";
@@ -215,14 +219,11 @@ public abstract class ModuleTab extends JPanel implements Runnable, FocusListene
 		bottomPanel.setLayout(new BoxLayout(bottomPanel, BoxLayout.X_AXIS));
 		
 		addBottomFilter();
-
-		// force the next labels to the right side of screen
 		
-//		lblCaptureDate = new JLabel(CAPTURE_DATE);
-//		lblCaptureDate.setFont(new Font("SansSerif", Font.BOLD, (int)(Config.displayModuleFontSize * 10/11)));
-//		lblCaptureDate.setBorder(new EmptyBorder(5, 2, 5, 10) ); // top left bottom right
-//		lblCaptureDate.setForeground(textLblColor);
-//		bottomPanel.add(lblCaptureDate );
+		lblCaptureDate = new JLabel(CAPTURE_DATE);
+		lblCaptureDate.setBorder(new EmptyBorder(5, 2, 5, 10) ); // top left bottom right
+		lblCaptureDate.setForeground(textLblColor);
+		bottomPanel.add(lblCaptureDate );
 		
 		if (layout == null ) {
 			// TODO FATAL ERROR
@@ -242,6 +243,30 @@ public abstract class ModuleTab extends JPanel implements Runnable, FocusListene
 		addTable(healthPanel, layout);
 
 		
+	}
+	
+	public void displayCaptureDate(long uptime) {
+		//SimpleDateFormat df = new SimpleDateFormat("yyyyMMddHHmmss", Locale.ENGLISH);
+		SimpleDateFormat df2 = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss", Locale.ENGLISH);
+		//df2.setTimeZone(TimeZone.getTimeZone("UTC"));  // messing with timezones here does not work.... not sure why.
+		//df2.setTimeZone(TimeZone.getDefault());
+		    Date result = null;
+		    String reportDate = null;
+			try {
+				result = new Date(uptime*1000);
+				if (this.showUTCtime)
+					df2.setTimeZone(TimeZone.getTimeZone("UTC"));
+				else 
+					df2.setTimeZone(TimeZone.getDefault());
+				reportDate = df2.format(result);
+				
+			} catch (NumberFormatException e) {
+				reportDate = "unknown";				
+			} catch (ArrayIndexOutOfBoundsException e) {
+				reportDate = "unknown";
+			}
+			
+			lblCaptureDate.setText(CAPTURE_DATE + reportDate);
 	}
 	
 	public void stopProcessing() {
