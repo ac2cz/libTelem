@@ -51,7 +51,7 @@ import com.g0kla.telem.predict.SortedTleList;
  */
 public class SatelliteManager implements Runnable {
 	
-	public static final String AMSAT_NASA_ALL = "http://www.amsat.org/amsat/ftp/keps/current/nasabare.txt";
+	public static final String AMSAT_NASA_ALL = "http://lansing182.amsat.org/tle/current/nasabare.txt";
 	public boolean updated = true; // true when we have first been created or the sats have been updated and layout needs to change
 	boolean server = false;
 	public ArrayList<Spacecraft> spacecraftList = new ArrayList<Spacecraft>();
