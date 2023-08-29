@@ -107,6 +107,12 @@ public class ConversionTable {
 				s = mode[(int) rawValue];
 			else 
 				s = ""+rawValue;
+		} else if (units[conversion].equalsIgnoreCase("MirSpacecraftMode")) {
+			String[] mode = {"reset/power-up","separation","safe","standby", "mission"};
+			if (rawValue < mode.length)
+				s = mode[(int) rawValue];
+			else 
+				s = ""+rawValue;
 		} else if (units[conversion].equalsIgnoreCase("MirADCSState")) {
 			String[] mode = {"nadir","sun","velocity","LLA","moon"};
 			if (rawValue < mode.length)
