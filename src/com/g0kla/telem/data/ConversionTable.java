@@ -113,6 +113,13 @@ public class ConversionTable {
 				s = mode[(int) rawValue];
 			else 
 				s = ""+rawValue;
+		} else if (units[conversion].equalsIgnoreCase("AX5043_PWRMODE")) {
+			String[] mode = {"OFF","SLEEP","","","","STDBY","","FIFO","SYNTHRX",
+					"RX","","WOR","SNTHTX","TX"};
+			if (rawValue < mode.length)
+				s = mode[(int) rawValue];
+			else 
+				s = ""+rawValue;
 		} else {
 			s = String.format("%1.2f", val);
 		}
