@@ -2,6 +2,8 @@ package com.g0kla.telem.data;
 
 import java.io.IOException;
 
+
+// TODO - setting to LITTLE ENDIAN does not work because the parseData routine is called from super and the variable has not yet been set..
 public class BitDataRecord extends DataRecord {
 	protected static final String PAD = "pad";
 	public boolean[] rawBits = null;
@@ -29,10 +31,10 @@ public class BitDataRecord extends DataRecord {
 	}
 	
 	public void addNext8Bits(byte b) {
-		if (littleEndian)
+		//if (littleEndian)
 			littleEndianAddNext8Bits(b);
-		else
-			bigEndianAddNext8Bits(b);
+		//else
+		//	bigEndianAddNext8Bits(b);
 				
 	}
 	
@@ -88,10 +90,10 @@ public class BitDataRecord extends DataRecord {
 	}
 	
 	protected int nextbits(int n ) {
-		if (littleEndian)
+		//if (littleEndian)
 			return littleEndianNextbits(n);
-		else
-			return bigEndianNextbits(n);
+		//else
+		//	return bigEndianNextbits(n);
 	}
 
 	/**
