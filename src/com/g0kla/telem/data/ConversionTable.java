@@ -81,7 +81,7 @@ public class ConversionTable {
 			s = intToBin((int)val,8);
 		} else if (format[conversion].equalsIgnoreCase("Bit16")) {
 			s = intToBin((int)val,16);
-		} else if (format[conversion].equalsIgnoreCase("Sint8")) {
+		} else if (format[conversion].equalsIgnoreCase("SMint8")) {
 			// Signed Magnitude with msb as the sign
 			long bitMask = 0x80;
 			long valueMask = 0x7F;
@@ -91,7 +91,7 @@ public class ConversionTable {
 				sval = sval * -1;
 			val = convertRawValue(conversion, sval);
 			s = String.format("%1.2f", val);				
-		} else if (format[conversion].equalsIgnoreCase("Sint16")) {
+		} else if (format[conversion].equalsIgnoreCase("SMint16")) {
 			// Signed Magnitude with msb as the sign
 			long bitMask = 0x8000;
 			long valueMask = 0x7FFF;
@@ -101,6 +101,16 @@ public class ConversionTable {
 				sval = sval * -1;
 			val = convertRawValue(conversion, sval);
 			s = String.format("%1.2f", val);
+		} else if (format[conversion].equalsIgnoreCase("Sint8")) {
+			// Signed 2s complement
+			byte b_val = (byte)rawValue;
+			val = convertRawValue(conversion, b_val);
+			s = String.format("%1.2f", val);
+		} else if (format[conversion].equalsIgnoreCase("Sint16")) {
+				// Signed 2s complement
+				short short_val = (short)rawValue;
+				val = convertRawValue(conversion, short_val);
+				s = String.format("%1.2f", val);
 		} else if (format[conversion].equalsIgnoreCase("MirADCSMode")) {
 			String[] mode = {"standby","detumble","coarse-point","fine-point"};
 			if (rawValue < mode.length)
@@ -126,12 +136,12 @@ public class ConversionTable {
 				s = mode[(int) rawValue];
 			else 
 				s = ""+rawValue;
-		} else if (format[conversion].equalsIgnoreCase("IORS_MODE")) {
-				String[] mode = {"SAFE","TELEM","X BAND RPT","APRS","SSTV","FS"};
-				if (rawValue < mode.length)
-					s = mode[(int) rawValue];
-				else 
-					s = ""+rawValue;
+		} else if (format[conversion].equalsIgnoreCase("Enum")) {
+			String[] mode = description[conversion].split(":");
+			if (rawValue < mode.length)
+				s = mode[(int) rawValue];
+			else 
+				s = ""+rawValue;
 		} else {
 			s = String.format("%1.2f", val);
 		}
