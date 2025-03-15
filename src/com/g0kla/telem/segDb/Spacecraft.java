@@ -76,6 +76,7 @@ public class Spacecraft implements Comparable<Spacecraft> {
 	
 	public boolean telemetryMSBfirst = true;
 	public boolean ihuLittleEndian = true;
+	public boolean useResetUptime = false;
 		
 	public int numberOfLayouts = 0;
 	public String[] layoutFilename;
@@ -304,7 +305,13 @@ public class Spacecraft implements Comparable<Spacecraft> {
 				layoutsUseBits = false;
 			else 
 				layoutsUseBits = Boolean.parseBoolean(b);
-
+			
+			b = getOptionalProperty("useResetUptime");
+			if (b == null) 
+				useResetUptime = false;
+			else 
+				useResetUptime = Boolean.parseBoolean(b);
+			
 			// Conversions
 			conversionCoefficientsFileName = getProperty("conversionCoefficients");
 			

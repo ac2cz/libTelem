@@ -21,7 +21,7 @@ package com.g0kla.telem.data;
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-@SuppressWarnings("serial")
+//@SuppressWarnings("serial")
 public class LayoutLoadException extends Exception {
 
 	public LayoutLoadException(String s) {
