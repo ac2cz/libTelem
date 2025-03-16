@@ -12,6 +12,7 @@ public class DataRecord implements Comparable<DataRecord> {
 	
 	public ByteArrayLayout layout;
 	public int[] fieldValue = null;
+	boolean littleEndian = true;
 	
 	// Identification
 	public int id; // Used to seperate records if more than one spacecraft in the same database
@@ -28,12 +29,13 @@ public class DataRecord implements Comparable<DataRecord> {
 		load(line);
 	}
 	
-	public DataRecord(ByteArrayLayout layout, int id, int resets, long uptime, int type, int[] data) throws LayoutLoadException, IOException {
+	public DataRecord(ByteArrayLayout layout, int id, int resets, long uptime, int type, int[] data, boolean littleEndian) throws LayoutLoadException, IOException {
 		this.id = id;
 		this.resets = resets;
 		this.uptime = uptime;
 		this.type = type;
 		this.layout = layout;
+		this.littleEndian = littleEndian;
 		fieldValue = new int[layout.fieldName.length];
 		
 		parseData(data);

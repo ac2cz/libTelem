@@ -7,14 +7,14 @@ public class BitDataRecord extends DataRecord {
 	public boolean[] rawBits = null;
 	protected int bitPosition = 0; // position in the raw bits as we allocate them to the fields	
 	public int numberBytesAdded = 0;
-	boolean littleEndian = true;
+
 	public static final boolean BIG_ENDIAN = false;
 	public static final boolean LITTLE_ENDIAN = true;
 	
 	public BitDataRecord(BitArrayLayout layout, int id, int resets, long uptime, int type, int[] data, boolean littleEndian)
 			throws LayoutLoadException, IOException {
-		super(layout, id, resets, uptime, type, data);
-		this.littleEndian = littleEndian;
+		super(layout, id, resets, uptime, type, data, littleEndian);
+
 	}
 
 	public void parseData(int[] data) {
