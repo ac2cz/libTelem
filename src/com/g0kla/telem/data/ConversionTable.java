@@ -28,7 +28,7 @@ public class ConversionTable {
 	public double[] d = null; 
 	public double[] e = null; 
 	public double[] f = null; 
-	public String[] units = null;  // name of the field that the bits correspond to
+	public String[] format = null;  // This is really the format for the final string
 	public int[] low = null;  // name of the field that the bits correspond to
 	public int[] high = null;  // name of the field that the bits correspond to
 	public String[] description = null;  // name of the field that the bits correspond to
@@ -45,43 +45,43 @@ public class ConversionTable {
 	}
 
 	public String getUnits(int conversion) {
-		String s = units[conversion];
+		String s = format[conversion];
 		return s;
 	}
 
 	public String getStringValue(int conversion, long rawValue) {
 		double val = convertRawValue(conversion, rawValue);
 		String s = "";
-		if (units[conversion].equalsIgnoreCase("Counts")) {
+		if (format[conversion].equalsIgnoreCase("Counts")) {
 			s = Integer.toString((int) val);
-		} else if (units[conversion].equalsIgnoreCase("Boolean")) {
+		} else if (format[conversion].equalsIgnoreCase("Boolean")) {
 			if (val > 0) s = "True";
 			else s = "False";
-		} else if (units[conversion].equalsIgnoreCase("Time")) {
+		} else if (format[conversion].equalsIgnoreCase("Time")) {
 			int h = (int) (val / (60*60*1000));
 			val = val - (h*60*60*1000);
 			int m = (int) (val / (60*1000));
 			int sec = (int) val - m * 60*1000;
 			sec = sec / 1000;
 			s = String.format("%02d:%02d:%02d", h,m,sec);
-		} else if (units[conversion].equalsIgnoreCase("Date")) {
+		} else if (format[conversion].equalsIgnoreCase("Date")) {
 			Date dt = new Date((long) val*1000);
 			s = dateFormatSecs.format(dt);
-		} else if (units[conversion].equalsIgnoreCase("Raw8")) {
+		} else if (format[conversion].equalsIgnoreCase("Raw8")) {
 			s = toByteString(rawValue,8);
-		} else if (units[conversion].equalsIgnoreCase("Raw10")) {
+		} else if (format[conversion].equalsIgnoreCase("Raw10")) {
 			s = toByteString(rawValue,10);
-		} else if (units[conversion].equalsIgnoreCase("Bit2")) {
+		} else if (format[conversion].equalsIgnoreCase("Bit2")) {
 			s = intToBin((int)val,2);
-		} else if (units[conversion].equalsIgnoreCase("Bit3")) {
+		} else if (format[conversion].equalsIgnoreCase("Bit3")) {
 			s = intToBin((int)val,3);
-		} else if (units[conversion].equalsIgnoreCase("Bit4")) {
+		} else if (format[conversion].equalsIgnoreCase("Bit4")) {
 			s = intToBin((int)val,4);
-		} else if (units[conversion].equalsIgnoreCase("Bit8")) {
+		} else if (format[conversion].equalsIgnoreCase("Bit8")) {
 			s = intToBin((int)val,8);
-		} else if (units[conversion].equalsIgnoreCase("Bit16")) {
+		} else if (format[conversion].equalsIgnoreCase("Bit16")) {
 			s = intToBin((int)val,16);
-		} else if (units[conversion].equalsIgnoreCase("Sint8")) {
+		} else if (format[conversion].equalsIgnoreCase("SMint8")) {
 			// Signed Magnitude with msb as the sign
 			long bitMask = 0x80;
 			long valueMask = 0x7F;
@@ -91,7 +91,7 @@ public class ConversionTable {
 				sval = sval * -1;
 			val = convertRawValue(conversion, sval);
 			s = String.format("%1.2f", val);				
-		} else if (units[conversion].equalsIgnoreCase("Sint16")) {
+		} else if (format[conversion].equalsIgnoreCase("SMint16")) {
 			// Signed Magnitude with msb as the sign
 			long bitMask = 0x8000;
 			long valueMask = 0x7FFF;
@@ -101,27 +101,43 @@ public class ConversionTable {
 				sval = sval * -1;
 			val = convertRawValue(conversion, sval);
 			s = String.format("%1.2f", val);
-		} else if (units[conversion].equalsIgnoreCase("MirADCSMode")) {
+		} else if (format[conversion].equalsIgnoreCase("Sint8")) {
+			// Signed 2s complement
+			byte b_val = (byte)rawValue;
+			val = convertRawValue(conversion, b_val);
+			s = String.format("%1.2f", val);
+		} else if (format[conversion].equalsIgnoreCase("Sint16")) {
+				// Signed 2s complement
+				short short_val = (short)rawValue;
+				val = convertRawValue(conversion, short_val);
+				s = String.format("%1.2f", val);
+		} else if (format[conversion].equalsIgnoreCase("MirADCSMode")) {
 			String[] mode = {"standby","detumble","coarse-point","fine-point"};
 			if (rawValue < mode.length)
 				s = mode[(int) rawValue];
 			else 
 				s = ""+rawValue;
-		} else if (units[conversion].equalsIgnoreCase("MirSpacecraftMode")) {
+		} else if (format[conversion].equalsIgnoreCase("MirSpacecraftMode")) {
 			String[] mode = {"reset/power-up","separation","safe","standby", "mission"};
 			if (rawValue < mode.length)
 				s = mode[(int) rawValue];
 			else 
 				s = ""+rawValue;
-		} else if (units[conversion].equalsIgnoreCase("MirADCSState")) {
+		} else if (format[conversion].equalsIgnoreCase("MirADCSState")) {
 			String[] mode = {"nadir","sun","velocity","LLA","moon"};
 			if (rawValue < mode.length)
 				s = mode[(int) rawValue];
 			else 
 				s = ""+rawValue;
-		} else if (units[conversion].equalsIgnoreCase("AX5043_PWRMODE")) {
+		} else if (format[conversion].equalsIgnoreCase("AX5043_PWRMODE")) {
 			String[] mode = {"OFF","SLEEP","","","","STDBY","","FIFO","SYNTHRX",
 					"RX","","WOR","SNTHTX","TX"};
+			if (rawValue < mode.length)
+				s = mode[(int) rawValue];
+			else 
+				s = ""+rawValue;
+		} else if (format[conversion].equalsIgnoreCase("Enum")) {
+			String[] mode = description[conversion].split(":");
 			if (rawValue < mode.length)
 				s = mode[(int) rawValue];
 			else 
@@ -199,7 +215,7 @@ public class ConversionTable {
 		d = new double[NUMBER_OF_FIELDS];
 		e = new double[NUMBER_OF_FIELDS];
 		f = new double[NUMBER_OF_FIELDS];
-		units = new String[NUMBER_OF_FIELDS];
+		format = new String[NUMBER_OF_FIELDS];
 		low = new int[NUMBER_OF_FIELDS];
 		high = new int[NUMBER_OF_FIELDS];
 		description = new String[NUMBER_OF_FIELDS];
@@ -219,7 +235,7 @@ public class ConversionTable {
 				d[field] = Double.valueOf(st.nextToken()).doubleValue();
 				e[field] = Double.valueOf(st.nextToken()).doubleValue();
 				f[field] = Double.valueOf(st.nextToken()).doubleValue();
-				units[field] = st.nextToken();
+				format[field] = st.nextToken();
 				low[field] = Integer.valueOf(st.nextToken()).intValue();
 				high[field] = Integer.valueOf(st.nextToken()).intValue();
 				try {

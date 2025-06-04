@@ -8,15 +8,15 @@ import java.util.Date;
 import java.util.List;
 import java.util.TimeZone;
 
-import org.apache.http.HttpEntity;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.message.BasicNameValuePair;
-import org.apache.http.util.EntityUtils;
+//import org.apache.http.HttpEntity;
+//import org.apache.http.NameValuePair;
+//import org.apache.http.client.entity.UrlEncodedFormEntity;
+//import org.apache.http.client.methods.CloseableHttpResponse;
+//import org.apache.http.client.methods.HttpPost;
+//import org.apache.http.impl.client.CloseableHttpClient;
+//import org.apache.http.impl.client.HttpClients;
+//import org.apache.http.message.BasicNameValuePair;
+//import org.apache.http.util.EntityUtils;
 
 public class SubmitTelem {
 	
@@ -48,58 +48,58 @@ public class SubmitTelem {
 	
 	public boolean send() throws Exception {
 
-        HttpPost post = new HttpPost(url);
-
-        // add request parameter, form parameters
-        List<NameValuePair> urlParameters = new ArrayList<>();
-        urlParameters.add(new BasicNameValuePair("noradID", ""+noradId));
-        urlParameters.add(new BasicNameValuePair("source", source));
-        
-        TimeZone tz = TimeZone.getTimeZone("UTC");
-		DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"); // Quoted "Z" to indicate UTC, no timezone offset
-		df.setTimeZone(tz);
-		String timestampAsISO = df.format(timestamp);
-        urlParameters.add(new BasicNameValuePair("timestamp", timestampAsISO));
-
-        urlParameters.add(new BasicNameValuePair("frame", frame));
-        urlParameters.add(new BasicNameValuePair("locator", locator));
-        
-        DecimalFormat decimalFormat5 = new DecimalFormat();
-        decimalFormat5.setMaximumFractionDigits(5);
-        
-        String longDir = "E";
-        if (longitude < 0) {
-        	longDir = "W";
-        	longitude = longitude * -1;
-        }
-        String latDir = "N";
-        if (latitude < 0) {
-        	latDir = "S";
-        	latitude = latitude * -1;
-        }
-        
-        urlParameters.add(new BasicNameValuePair("longitude", decimalFormat5.format(longitude)+longDir));
-        urlParameters.add(new BasicNameValuePair("latitude", decimalFormat5.format(latitude)+latDir));
-        
-        HttpEntity entity = new UrlEncodedFormEntity(urlParameters,"UTF-8");
-               
-        post.setEntity(entity);
-        String postStr = EntityUtils.toString(entity);
-        try (CloseableHttpClient httpClient = HttpClients.createDefault();
-             CloseableHttpResponse response = httpClient.execute(post)) {
-        	// Getting the status code.
-        	responseCode = response.getStatusLine().getStatusCode();
-
-        	// Getting the response body.
-        	responseText = EntityUtils.toString(response.getEntity());
-        	
-        	if (responseCode < 200 || responseCode >= 300) {
-        		// Debug error
-            	return false;
-        	}
+//        HttpPost post = new HttpPost(url);
+//
+//        // add request parameter, form parameters
+//        List<NameValuePair> urlParameters = new ArrayList<>();
+//        urlParameters.add(new BasicNameValuePair("noradID", ""+noradId));
+//        urlParameters.add(new BasicNameValuePair("source", source));
+//        
+//        TimeZone tz = TimeZone.getTimeZone("UTC");
+//		DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"); // Quoted "Z" to indicate UTC, no timezone offset
+//		df.setTimeZone(tz);
+//		String timestampAsISO = df.format(timestamp);
+//        urlParameters.add(new BasicNameValuePair("timestamp", timestampAsISO));
+//
+//        urlParameters.add(new BasicNameValuePair("frame", frame));
+//        urlParameters.add(new BasicNameValuePair("locator", locator));
+//        
+//        DecimalFormat decimalFormat5 = new DecimalFormat();
+//        decimalFormat5.setMaximumFractionDigits(5);
+//        
+//        String longDir = "E";
+//        if (longitude < 0) {
+//        	longDir = "W";
+//        	longitude = longitude * -1;
+//        }
+//        String latDir = "N";
+//        if (latitude < 0) {
+//        	latDir = "S";
+//        	latitude = latitude * -1;
+//        }
+//        
+//        urlParameters.add(new BasicNameValuePair("longitude", decimalFormat5.format(longitude)+longDir));
+//        urlParameters.add(new BasicNameValuePair("latitude", decimalFormat5.format(latitude)+latDir));
+//        
+//        HttpEntity entity = new UrlEncodedFormEntity(urlParameters,"UTF-8");
+//               
+//        post.setEntity(entity);
+//        String postStr = EntityUtils.toString(entity);
+//        try (CloseableHttpClient httpClient = HttpClients.createDefault();
+//             CloseableHttpResponse response = httpClient.execute(post)) {
+//        	// Getting the status code.
+//        	responseCode = response.getStatusLine().getStatusCode();
+//
+//        	// Getting the response body.
+//        	responseText = EntityUtils.toString(response.getEntity());
+//        	
+//        	if (responseCode < 200 || responseCode >= 300) {
+//        		// Debug error
+//            	return false;
+//        	}
         	
         	return true;
-        }
+ //       }
     }
 	
 	public static void main(String args[]) {
