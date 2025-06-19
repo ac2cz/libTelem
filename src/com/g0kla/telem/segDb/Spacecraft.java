@@ -12,6 +12,7 @@ import java.io.Writer;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.NoSuchElementException;
 import java.util.Properties;
 import java.util.TimeZone;
 
@@ -73,6 +74,7 @@ public class Spacecraft implements Comparable<Spacecraft> {
 	public int minFreqBoundkHz = 145970;
 	public int maxFreqBoundkHz = 145990;
 	public boolean layoutsUseBits = false;
+	public boolean layoutsUseToCallsignAsType = false;
 	
 	public boolean telemetryMSBfirst = true;
 	public boolean ihuLittleEndian = true;
@@ -305,6 +307,13 @@ public class Spacecraft implements Comparable<Spacecraft> {
 				layoutsUseBits = false;
 			else 
 				layoutsUseBits = Boolean.parseBoolean(b);
+
+			String b2 = getOptionalProperty("layoutsUseToCallsignAsType");
+			if (b2 == null) 
+				layoutsUseToCallsignAsType = false;
+			else 
+				layoutsUseToCallsignAsType = Boolean.parseBoolean(b);
+
 			
 			b = getOptionalProperty("useResetUptime");
 			if (b == null) 
@@ -349,6 +358,8 @@ public class Spacecraft implements Comparable<Spacecraft> {
 				track = true;
 			else 
 				track = Boolean.parseBoolean(t);
+		} catch (NoSuchElementException ne) {
+			throw new LayoutLoadException("Corrupt data found: "+ ne.getMessage() + "\nwhen processing Spacecraft file: " + propertiesFile.getAbsolutePath() );
 		} catch (NumberFormatException nf) {
 			throw new LayoutLoadException("Corrupt data found: "+ nf.getMessage() + "\nwhen processing Spacecraft file: " + propertiesFile.getAbsolutePath() );
 		} catch (NullPointerException nf) {

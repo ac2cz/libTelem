@@ -1,12 +1,13 @@
 package com.g0kla.telem.data;
 
 import java.io.IOException;
+import java.util.NoSuchElementException;
 
 public class BitArrayLayout extends ByteArrayLayout {
 
 	private int numberOfBits = 0;
 	
-	public BitArrayLayout(String name, String fileName) throws LayoutLoadException, IOException {
+	public BitArrayLayout(String name, String fileName) throws LayoutLoadException, IOException, NoSuchElementException {
 		super(name, fileName);
 		for (int i: fieldLength)
 			numberOfBits += i;

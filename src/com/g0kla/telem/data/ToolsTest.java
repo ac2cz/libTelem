@@ -1,8 +1,5 @@
 package com.g0kla.telem.data;
 
-import static org.junit.Assert.assertEquals;
-
-import org.junit.Test;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 

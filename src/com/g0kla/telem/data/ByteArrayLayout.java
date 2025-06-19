@@ -71,7 +71,7 @@ public class ByteArrayLayout {
 	 * @throws LayoutLoadException 
 	 * @throws IOException 
 	 */
-	public ByteArrayLayout(String name, String fileName) throws LayoutLoadException, IOException {
+	public ByteArrayLayout(String name, String fileName) throws LayoutLoadException, IOException, NoSuchElementException {
 		this.name = name;
 		load(fileName);
 	}
@@ -171,7 +171,7 @@ public class ByteArrayLayout {
 		}
 	}
 
-	protected void load(String fileName) throws LayoutLoadException, IOException {
+	protected void load(String fileName) throws LayoutLoadException, IOException, NoSuchElementException {
 
 		String line;
 		
